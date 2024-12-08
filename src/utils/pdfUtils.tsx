@@ -1,6 +1,3 @@
-// src/utils/pdfUtils.ts
-import dynamic from 'next/dynamic';
-
 export const generateAndDownloadPDF = async (props: any) => {
   // Dynamically import react-pdf
   const { pdf } = await import('@react-pdf/renderer');

@@ -1,271 +1,46 @@
-'use client'
-import { useState, useEffect, useRef } from 'react'
-import dynamic from 'next/dynamic'
-import Header from '@/components/layout/Header'
-import Sidebar from '@/components/layout/Sidebar'
-import Footer from '@/components/layout/Footer'
-import BasicInfo from '@/components/forms/BasicInfo'
-import FloorConfig from '@/components/forms/FloorConfig'
-import Steps from '@/components/layout/Steps'
-import CostReview from '@/components/forms/CostReview'
-import { ProjectBasicInfo } from '@/types/building'
-import { itemCosts, calculateItemCost, getItemName } from '@/config/costs'
+// src/utils/pdfUtils.ts
+import { ProjectBasicInfo } from '@/types/building';
 
-const defaultItems = {
-  gate: 0,
-  motionSensor: 0,
-  fireDetection: 0,
-  waterDetection: 0,
-  floorDetection: 0,
-  smartAICamera: 0,
-  existingCamera: 0,
-  wifi: 0,
-  hoistDoor: 0
-};
-
-interface BuildingItems {
-  crane: number;
-  mastClimber: number;
-  hoistSystem: {
-    normalHoist: number;
-    smartHoist: number;
-  };
-}
-
-interface Floor {
-  id: string;
-  level: number;
-  selected: boolean;
-  isBase?: boolean;
-  items: Record<string, number>;
-}
-
-export default function Home() {
-  const [step, setStep] = useState(1)
-  const [floorCount, setFloorCount] = useState(0)
-  const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
-  const [projectData, setProjectData] = useState<ProjectBasicInfo>({
-    name: '',
-    installationDate: '',
-    comments: '',
-    status: 'draft'
-  });
-
-  const [validationError, setValidationError] = useState(false);
-  const basicInfoRef = useRef<{ validateName: () => boolean } | null>(null);
-
-  const [buildingItems, setBuildingItems] = useState<BuildingItems>({
-    crane: 0,
-    mastClimber: 0,
+interface PDFGenerationProps {
+  projectData: ProjectBasicInfo;
+  orderNumber: string;
+  floorsWithItems: Array<{
+    id: string;
+    level: number;
+    isBase?: boolean;
+    items: Record<string, number>;
+  }>;
+  buildingItems: {
+    crane: number;
+    mastClimber: number;
     hoistSystem: {
-      normalHoist: 0,
-      smartHoist: 0
-    }
-  });
-
-  const [floors, setFloors] = useState<Floor[]>([
-    {
-      id: '0',
-      level: 0,
-      selected: false,
-      isBase: true,
-      items: { ...defaultItems }
-    }
-  ]);
-
-  useEffect(() => {
-    setFloors(currentFloors => {
-      const baseFloor = currentFloors[0];
-      
-      const additionalFloors = Array.from({ length: floorCount }, (_, index) => ({
-        id: String(index + 1),
-        level: index + 1,
-        selected: false,
-        isBase: false,
-        items: { ...defaultItems }
-      }));
-  
-      return [baseFloor, ...additionalFloors];
-    });
-  }, [floorCount]);
-
-  const formatPrice = (price: number) => {
-    return `$${Math.round(price).toLocaleString()}`;
-  };
-
-  const calculateFloorItemsCost = () => {
-    return floors.reduce((total, floor) => {
-      return total + Object.entries(floor.items).reduce((floorTotal, [itemKey, quantity]) => 
-        floorTotal + calculateItemCost(itemKey, quantity), 0);
-    }, 0);
-  };
-
-  const calculateBuildingItemsCost = () => {
-    return (
-      calculateItemCost('crane', buildingItems.crane) +
-      calculateItemCost('mastClimber', buildingItems.mastClimber) +
-      calculateItemCost('normalHoist', buildingItems.hoistSystem.normalHoist) +
-      calculateItemCost('smartHoist', buildingItems.hoistSystem.smartHoist)
-    );
-  };
-
-  const generateOrderNumber = (projectName: string) => {
-    if (!projectName) return '#10000';
-    
-    const firstLetter = projectName.charAt(0).toUpperCase();
-    const randomNum = Math.floor(Math.random() * (9999 - 3500 + 1) + 3500);
-    const lastChar = projectName.slice(-1).toUpperCase();
-    
-    return `#SMSI${firstLetter}${randomNum}${lastChar}`;
-  };
-
-  const handleExport = async () => {
-    if (typeof window === 'undefined') return;
-
-    const hasItems = (floor: Floor) => {
-      return Object.values(floor.items).some(quantity => quantity > 0);
+      normalHoist: number;
+      smartHoist: number;
     };
-
-    const floorsWithItems = floors.filter(hasItems);
-    
-    try {
-      const { generateAndDownloadPDF } = await import('@/utils/pdfUtils');
-      await generateAndDownloadPDF({
-        projectData,
-        orderNumber: generateOrderNumber(projectData.name),
-        floorsWithItems,
-        buildingItems,
-        formatPrice,
-        getItemName,
-        calculateItemCost,
-        totalCost: calculateFloorItemsCost() + calculateBuildingItemsCost()
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    }
   };
-
-  const handleStepChange = async (newStep: number) => {
-    if (newStep > step) {
-      if (step === 1) {
-        const isValid = basicInfoRef.current?.validateName();
-        if (!isValid) {
-          setValidationError(true);
-          return;
-        }
-      }
-
-      if (step === 3) {
-        await handleExport();
-        return;
-      }
-    }
-    
-    setValidationError(false);
-    setStep(newStep);
-  };
-
-  const updateProjectField = (field: string, value: string) => {
-    setProjectData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateFloorItem = (floorId: string, itemKey: string, value: number) => {
-    setFloors(prevFloors => 
-      prevFloors.map(floor => 
-        floor.id === floorId 
-          ? { ...floor, items: { ...floor.items, [itemKey]: value } }
-          : floor
-      )
-    );
-  };
-
-  const updateFloorOrder = (newOrder: Floor[]) => {
-    setFloors(newOrder);
-  };
-
-  const clearFloorItems = (floorId: string) => {
-    setFloors(prevFloors =>
-      prevFloors.map(floor =>
-        floor.id === floorId
-          ? {
-              ...floor,
-              items: Object.keys(floor.items).reduce((acc, key) => ({
-                ...acc,
-                [key]: 0
-              }), {})
-            }
-          : floor
-      )
-    );
-  };
-
-  const updateBuildingItem = (itemKey: string, value: number) => {
-    setBuildingItems(prev => ({
-      ...prev,
-      [itemKey]: value
-    }));
-  };
-
-  const updateHoistItem = (itemKey: string, value: number) => {
-    setBuildingItems(prev => ({
-      ...prev,
-      hoistSystem: {
-        ...prev.hoistSystem,
-        [itemKey]: value
-      }
-    }));
-  };
-
-  return (
-    <div className="flex h-screen bg-white">
-      <Sidebar 
-        floorCount={floorCount}
-        setFloorCount={setFloorCount}
-        activeFloor={activeFloor}
-        setActiveFloor={setActiveFloor}
-        buildingItems={buildingItems}
-      />
-      <div className="w-1/2 flex flex-col relative shadow-xl" 
-           style={{
-             background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
-           }}>
-        <Header projectName={step === 1 ? '' : projectData.name} />
-        <Steps currentStep={step} />
-        <div className="flex-1 relative overflow-hidden">
-          {step === 1 && (
-            <BasicInfo 
-              ref={basicInfoRef}
-              formData={projectData}
-              updateField={updateProjectField}
-              hasError={validationError}
-            />
-          )}
-          {step === 2 && (
-            <FloorConfig 
-              floors={floors}
-              activeFloor={activeFloor}
-              buildingItems={buildingItems}
-              onUpdateItem={updateFloorItem}
-              onUpdateOrder={updateFloorOrder}
-              onClearItems={clearFloorItems}
-              onUpdateBuildingItem={updateBuildingItem}
-              onUpdateHoistItem={updateHoistItem}
-            />
-          )}
-          {step === 3 && (
-            <CostReview 
-              projectData={projectData}
-              floors={floors}
-              buildingItems={buildingItems}
-            />
-          )}
-        </div>
-        <Footer 
-          step={step} 
-          setStep={handleStepChange} 
-          canProgress={step === 1 ? projectData.name.trim() !== '' : true}
-        />
-      </div>
-    </div>
-  );
+  formatPrice: (price: number) => string;
+  getItemName: (key: string) => string;
+  calculateItemCost: (key: string, quantity: number) => number;
+  totalCost: number;
 }
+
+export const generateAndDownloadPDF = async (props: PDFGenerationProps) => {
+  const { pdf } = await import('@react-pdf/renderer');
+  const { CreatePDF } = await import('../components/pdf/CreatePDF');
+  
+  const PDFDocument = <CreatePDF {...props} />;
+  
+  try {
+    const blob = await pdf(PDFDocument).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${props.projectData.name}-summary.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+  }
+};
