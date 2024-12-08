@@ -25,7 +25,6 @@ interface PDFGenerationProps {
 }
 
 export const generateAndDownloadPDF = async (props: PDFGenerationProps) => {
-  // Dynamically import react-pdf
   const { pdf } = await import('@react-pdf/renderer');
   const { CreatePDF } = await import('../components/pdf/CreatePDF');
   
