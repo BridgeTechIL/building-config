@@ -1,28 +1,24 @@
-export interface BuildingProject {
+export interface ProjectBasicInfo {
     name: string;
     installationDate: string;
     comments: string;
-    floors: Floor[];
     status: 'draft' | 'saved';
   }
   
   export interface Floor {
-    level: string;
+    id: string;
+    level: number;
     selected: boolean;
+    isBase?: boolean;
     items: FloorItems;
   }
   
-  export interface Step {
-    id: number;
-    label: string;
-    icon: 'info' | 'floors' | 'review';
-   }
-
   export interface FloorItems {
     [key: string]: number;
     gate: number;
     motionSensor: number;
     fireDetection: number;
+    waterDetection: number;
     floorDetection: number;
     smartAICamera: number;
     existingCamera: number;
@@ -30,9 +26,12 @@ export interface BuildingProject {
     hoistDoor: number;
   }
   
-  export type StepType = 'basic' | 'floors' | 'review';
+  export interface Step {
+    id: number;
+    label: string;
+    icon: 'info' | 'floors' | 'review';
+  }
   
-  export interface ProjectState {
-    currentStep: number;
-    project: BuildingProject;
+  export interface BuildingProject extends ProjectBasicInfo {
+    floors: Floor[];
   }

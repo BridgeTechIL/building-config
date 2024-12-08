@@ -6,6 +6,9 @@ import Footer from '@/components/layout/Footer'
 import BasicInfo from '@/components/forms/BasicInfo'
 import FloorConfig from '@/components/forms/FloorConfig'
 import Steps from '@/components/layout/Steps'
+import { ProjectBasicInfo } from '@/types/building'
+
+
 
 const defaultItems = {
   gate: 0,
@@ -31,12 +34,12 @@ export default function Home() {
   const [step, setStep] = useState(1)
   const [floorCount, setFloorCount] = useState(0)
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
-  const [projectData, setProjectData] = useState({
+  const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
     installationDate: '',
     comments: '',
-    status: 'draft' as const
-  })
+    status: 'draft'
+  });
   const [floors, setFloors] = useState<Floor[]>([
     {
       id: '0',
