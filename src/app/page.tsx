@@ -9,7 +9,7 @@ import Steps from '@/components/layout/Steps'
 import CostReview from '@/components/forms/CostReview'
 import { ProjectBasicInfo } from '@/types/building'
 import { generateAndDownloadPDF } from '@/utils/pdfUtils'
-import { itemCosts, calculateItemCost, getItemName } from '@/config/costs'
+import { calculateItemCost, getItemName } from '@/config/costs'
 
 const defaultItems = {
   gate: 0,

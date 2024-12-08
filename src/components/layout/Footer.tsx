@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { generateAndDownloadPDF } from '@/utils/pdfUtils';
 
 interface FooterProps {
   step: number;

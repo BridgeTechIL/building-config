@@ -1,7 +1,7 @@
 import React from 'react';
 import { Building, ChevronDown, ChevronUp } from 'lucide-react';
 import { ProjectBasicInfo } from '@/types/building';
-import { itemCosts, calculateItemCost, getItemName } from '@/config/costs';
+import { calculateItemCost, getItemName } from '@/config/costs';
 
 interface CostReviewProps {
   projectData: ProjectBasicInfo;
