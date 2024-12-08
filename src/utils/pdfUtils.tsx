@@ -1,4 +1,30 @@
-export const generateAndDownloadPDF = async (props: any) => {
+// src/utils/pdfUtils.ts
+import { ProjectBasicInfo } from '@/types/building';
+
+interface PDFGenerationProps {
+  projectData: ProjectBasicInfo;
+  orderNumber: string;
+  floorsWithItems: Array<{
+    id: string;
+    level: number;
+    isBase?: boolean;
+    items: Record<string, number>;
+  }>;
+  buildingItems: {
+    crane: number;
+    mastClimber: number;
+    hoistSystem: {
+      normalHoist: number;
+      smartHoist: number;
+    };
+  };
+  formatPrice: (price: number) => string;
+  getItemName: (key: string) => string;
+  calculateItemCost: (key: string, quantity: number) => number;
+  totalCost: number;
+}
+
+export const generateAndDownloadPDF = async (props: PDFGenerationProps) => {
   // Dynamically import react-pdf
   const { pdf } = await import('@react-pdf/renderer');
   const { CreatePDF } = await import('../components/pdf/CreatePDF');
