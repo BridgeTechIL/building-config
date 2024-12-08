@@ -5,7 +5,6 @@ import {
     GripVertical, 
     Wifi,
     Cctv,
-    DoorClosed,
     DoorOpen,
     Flame,
     Droplet,
@@ -19,6 +18,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -188,12 +188,12 @@ export default function FloorList({ floors, activeFloor, onUpdateItem, onUpdateO
     setExpandedFloorId(prevId => prevId === floorId ? null : floorId);
   };
 
-  function handleDragEnd(event: any) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (active.id !== over?.id) {
       const oldIndex = floors.findIndex(item => item.id === active.id);
-      const newIndex = floors.findIndex(item => item.id === over.id);
+      const newIndex = floors.findIndex(item => item.id === over?.id);
       
       if (floors[oldIndex].isBase || newIndex === 0) return;
 

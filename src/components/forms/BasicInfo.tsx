@@ -1,5 +1,4 @@
 // src/components/forms/BasicInfo.tsx
-import { Calendar } from 'lucide-react'
 import { BuildingProject } from '@/types/building'
 
 interface BasicInfoProps {
