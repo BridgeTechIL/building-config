@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import Footer from '@/components/layout/Footer'
@@ -8,8 +9,7 @@ import FloorConfig from '@/components/forms/FloorConfig'
 import Steps from '@/components/layout/Steps'
 import CostReview from '@/components/forms/CostReview'
 import { ProjectBasicInfo } from '@/types/building'
-import { generateAndDownloadPDF } from '@/utils/pdfUtils'
-import { calculateItemCost, getItemName } from '@/config/costs'
+import { itemCosts, calculateItemCost, getItemName } from '@/config/costs'
 
 const defaultItems = {
   gate: 0,
@@ -89,37 +89,6 @@ export default function Home() {
     });
   }, [floorCount]);
 
-  const handleStepChange = async (newStep: number) => {
-    if (newStep > step) {
-      if (step === 1) {
-        const isValid = basicInfoRef.current?.validateName();
-        if (!isValid) {
-          setValidationError(true);
-          return;
-        }
-      }
-
-      // Handle PDF export on last step
-      if (step === 3) {
-        await handleExport();
-        return;
-      }
-    }
-    
-    setValidationError(false);
-    setStep(newStep);
-  };
-
-  const generateOrderNumber = (projectName: string) => {
-    if (!projectName) return '#10000';
-    
-    const firstLetter = projectName.charAt(0).toUpperCase();
-    const randomNum = Math.floor(Math.random() * (9999 - 3500 + 1) + 3500);
-    const lastChar = projectName.slice(-1).toUpperCase();
-    
-    return `#SMSI${firstLetter}${randomNum}${lastChar}`;
-  };
-
   const formatPrice = (price: number) => {
     return `$${Math.round(price).toLocaleString()}`;
   };
@@ -140,23 +109,60 @@ export default function Home() {
     );
   };
 
+  const generateOrderNumber = (projectName: string) => {
+    if (!projectName) return '#10000';
+    
+    const firstLetter = projectName.charAt(0).toUpperCase();
+    const randomNum = Math.floor(Math.random() * (9999 - 3500 + 1) + 3500);
+    const lastChar = projectName.slice(-1).toUpperCase();
+    
+    return `#SMSI${firstLetter}${randomNum}${lastChar}`;
+  };
+
   const handleExport = async () => {
+    if (typeof window === 'undefined') return;
+
     const hasItems = (floor: Floor) => {
       return Object.values(floor.items).some(quantity => quantity > 0);
     };
 
     const floorsWithItems = floors.filter(hasItems);
+    
+    try {
+      const { generateAndDownloadPDF } = await import('@/utils/pdfUtils');
+      await generateAndDownloadPDF({
+        projectData,
+        orderNumber: generateOrderNumber(projectData.name),
+        floorsWithItems,
+        buildingItems,
+        formatPrice,
+        getItemName,
+        calculateItemCost,
+        totalCost: calculateFloorItemsCost() + calculateBuildingItemsCost()
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
 
-    await generateAndDownloadPDF({
-      projectData,
-      orderNumber: generateOrderNumber(projectData.name),
-      floorsWithItems,
-      buildingItems,
-      formatPrice,
-      getItemName,
-      calculateItemCost,
-      totalCost: calculateFloorItemsCost() + calculateBuildingItemsCost()
-    });
+  const handleStepChange = async (newStep: number) => {
+    if (newStep > step) {
+      if (step === 1) {
+        const isValid = basicInfoRef.current?.validateName();
+        if (!isValid) {
+          setValidationError(true);
+          return;
+        }
+      }
+
+      if (step === 3) {
+        await handleExport();
+        return;
+      }
+    }
+    
+    setValidationError(false);
+    setStep(newStep);
   };
 
   const updateProjectField = (field: string, value: string) => {
@@ -258,7 +264,6 @@ export default function Home() {
           step={step} 
           setStep={handleStepChange} 
           canProgress={step === 1 ? projectData.name.trim() !== '' : true}
-          onExport={step === 3 ? handleExport : undefined}
         />
       </div>
     </div>

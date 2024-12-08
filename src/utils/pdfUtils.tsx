@@ -1,12 +1,11 @@
 // src/utils/pdfUtils.ts
-import { pdf } from '@react-pdf/renderer';
-import { CreatePDF } from '../components/pdf/CreatePDF';
-import React from 'react';
+import dynamic from 'next/dynamic';
 
-type CreatePDFProps = React.ComponentProps<typeof CreatePDF>;
-
-export const generateAndDownloadPDF = async (props: CreatePDFProps) => {
-  // Create a new instance of the PDF component
+export const generateAndDownloadPDF = async (props: any) => {
+  // Dynamically import react-pdf
+  const { pdf } = await import('@react-pdf/renderer');
+  const { CreatePDF } = await import('../components/pdf/CreatePDF');
+  
   const PDFDocument = <CreatePDF {...props} />;
   
   try {
