@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import FloorList from '@/components/building/FloorList';
+import BuildingItems from '@/components/building/BuildingItems';
+
 
 interface Floor {
   id: string;
@@ -9,20 +11,41 @@ interface Floor {
   items: Record<string, number>;
 }
 
+
 interface FloorConfigProps {
-  floors: Floor[];
-  activeFloor?: number;
-  onUpdateItem: (floorId: string, itemKey: string, value: number) => void;
-  onUpdateOrder: (newOrder: Floor[]) => void;
-  onClearItems: (floorId: string) => void;
-}
+    floors: Floor[];
+    activeFloor?: number;
+    buildingItems: {
+      crane: number;
+      mastClimber: number;
+      hoistSystem: {
+        normalHoist: number;
+        smartHoist: number;
+      };
+    };
+    onUpdateItem: (floorId: string, itemKey: string, value: number) => void;
+    onUpdateOrder: (newOrder: Floor[]) => void;
+    onClearItems: (floorId: string) => void;
+    onUpdateBuildingItem: (itemKey: string, value: number) => void;
+    onUpdateHoistItem: (itemKey: string, value: number) => void;
+  }
 
 export default function FloorConfig({ 
   floors, 
-  activeFloor, 
-  onUpdateItem, 
-  onUpdateOrder, 
-  onClearItems 
+  activeFloor,
+  buildingItems = {
+    crane: 0,
+    mastClimber: 0,
+    hoistSystem: {
+      normalHoist: 0,
+      smartHoist: 0
+    }
+  },
+  onUpdateItem,
+  onUpdateOrder,
+  onClearItems,
+  onUpdateBuildingItem = () => {},
+  onUpdateHoistItem = () => {}
 }: FloorConfigProps) {
   const [activeTab, setActiveTab] = useState('planning');
 
@@ -56,14 +79,20 @@ export default function FloorConfig({
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {activeTab === 'planning' && 
           <FloorList 
-            floors={floors}
+            floors={floors} 
             activeFloor={activeFloor}
             onUpdateItem={onUpdateItem}
             onUpdateOrder={onUpdateOrder}
             onClearItems={onClearItems}
           />
         }
-        {activeTab === 'items' && <div>Building Items Content</div>}
+        {activeTab === 'items' && 
+          <BuildingItems 
+            items={buildingItems}
+            onUpdateItem={onUpdateBuildingItem}
+            onUpdateHoistItem={onUpdateHoistItem}
+          />
+        }
       </div>
     </div>
   );
