@@ -1,9 +1,9 @@
 export interface ProjectBasicInfo {
-    name: string;
-    installationDate: string;
-    comments: string;
-    status: 'draft' | 'saved';
-  }
+  name: string;
+  installationDate: string;
+  comments: string;
+  status: 'draft' | 'saved';
+}
   
   export interface Floor {
     id: string;

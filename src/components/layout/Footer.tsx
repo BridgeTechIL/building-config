@@ -4,6 +4,7 @@ interface FooterProps {
   step: number;
   setStep: (step: number) => void;
   canProgress: boolean;
+  status: 'draft' | 'saved';
   onExport?: () => Promise<void>;
 }
 

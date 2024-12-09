@@ -47,7 +47,7 @@ export default function Home() {
     name: '',
     installationDate: '',
     comments: '',
-    status: 'draft'
+    status: 'draft',
   });
 
   const [validationError, setValidationError] = useState(false);
@@ -263,6 +263,7 @@ export default function Home() {
           step={step} 
           setStep={handleStepChange} 
           canProgress={step === 1 ? projectData.name.trim() !== '' : true}
+          status={projectData.status}
         />
       </div>
     </div>
