@@ -4,11 +4,11 @@ import {
     ChevronUp, 
     GripVertical, 
     Wifi,
-    Cctv,
+    Camera,
     DoorOpen,
     Flame,
     Droplet,
-    MapPinned,
+    MapPin,
     Hand
 } from 'lucide-react';
 import {
@@ -69,13 +69,13 @@ function FloorItemComponent({ floor, isExpanded, isSelected, onToggleExpand, onU
   };
 
   const items = [
-    { key: 'gate', label: 'Personnel / Material Gate', icon: MapPinned },
+    { key: 'gate', label: 'Personnel / Material Gate', icon: MapPin },
     { key: 'motionSensor', label: 'Motion Sensor', icon: Hand },
     { key: 'fireDetection', label: 'Fire Detection', icon: Flame },
     { key: 'waterDetection', label: 'Flood Detection', icon: Droplet },
     { key: 'floorDetection', label: 'Hoist Door Detection', icon: DoorOpen },
-    { key: 'smartAICamera', label: 'Smart AI Camera', icon: Cctv },
-    { key: 'existingCamera', label: 'Smart AI for Existing Camera', icon: Cctv },
+    { key: 'smartAICamera', label: 'Smart AI Camera', icon: Camera },
+    { key: 'existingCamera', label: 'Smart AI for Existing Camera', icon: Camera },
     { key: 'wifi', label: 'WIFI', icon: Wifi },
   ];
 

@@ -3,10 +3,11 @@ import { montserrat } from '../../app/fonts';
 
 interface HeaderProps {
   projectName: string;
+  status?: 'draft' | 'saved';
 }
 
-export default function Header({ projectName }: HeaderProps) {
-  return (
+export default function Header({ projectName, status = 'draft' }: HeaderProps) {  // Added status with default value
+    return (
     <div className="flex justify-between items-center p-6 bg-white">
       <div className="flex items-center gap-4">
         <div className="text-cyan-500">

@@ -264,6 +264,7 @@ export default function Home() {
           setStep={handleStepChange} 
           canProgress={step === 1 ? projectData.name.trim() !== '' : true}
           status={projectData.status}
+          onExport={handleExport}  // Add this line
         />
       </div>
     </div>
