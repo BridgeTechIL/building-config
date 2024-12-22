@@ -8,7 +8,7 @@ interface FooterProps {
   onExport?: () => Promise<void>;
 }
 
-export default function Footer({ step, setStep, canProgress, status, onExport }: FooterProps) {
+export default function Footer({ step, setStep, canProgress, onExport }: FooterProps) {
   const handleSave = async () => {
     if (onExport) {
       await onExport();

@@ -3,9 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 
 interface Option {
-  id: string;
-  name: string;
-  [key: string]: any;
+    id: string;
+    name: string;
+    [key: string]: string | number | boolean;
 }
 
 interface MultiSelectProps<T extends Option> {

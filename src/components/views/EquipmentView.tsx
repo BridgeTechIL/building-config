@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
 import { Equipment, EquipmentGroup, equipment as initialEquipment, equipmentGroups as initialEquipmentGroups } from '@/config/equipment';
 import { MultiSelect } from '@/components/ui/MultiSelect';
 
@@ -88,7 +88,7 @@ const EquipmentView = () => {
               <div className="col-span-5">
               <MultiSelect
                 value={item.groups}
-                options={equipmentGroups}
+                options={equipmentGroups.map(group => ({ id: group.id, name: group.name, label: group.name, value: group.id }))}
                 onChange={(groups) => handleEquipmentUpdate(item.tagId, { groups })}
                 placeholder="Select groups..."
               />

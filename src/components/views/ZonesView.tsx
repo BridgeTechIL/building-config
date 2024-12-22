@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Plus, Camera, Wifi, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Plus, Camera, Wifi, Trash2 } from 'lucide-react';
 import { floorCameras } from '@/config/cameras';
 
 import {
@@ -38,13 +38,6 @@ interface ZonesViewProps {
   onAddZone: (floorId: string) => void;
   onRemoveZone: (floorId: string, zoneId: string) => void;
   onUpdateZone: (floorId: string, zoneId: string, updates: Partial<Zone>) => void;
-}
-
-function generateGateId() {
-  const prefix = 'GT';
-  const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  const suffix = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-  return `${prefix}${randomNum}${suffix}`;
 }
 
 function ZoneFloorItem({ 
@@ -130,7 +123,7 @@ function ZoneFloorItem({
             <div className="p-4">
               {floor.zones.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
-                  No zones defined. Click "Add Zone" to create one.
+                  No zones defined. Click `&quot;`Add Zone`&quot;` to create one.
                 </div>
               ) : (
                 <div className="bg-gray-50 rounded-lg p-4">

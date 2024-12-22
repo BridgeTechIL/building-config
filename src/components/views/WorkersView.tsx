@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin, DeleteIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
 import { Worker, WorkerGroup, workers as initialWorkers, workerGroups as initialWorkerGroups } from '@/config/workers';
 import { MultiSelect } from '@/components/ui/MultiSelect';
 
@@ -90,7 +90,7 @@ const WorkersView = () => {
               <div className="col-span-5">
               <MultiSelect
                 value={worker.groups}
-                options={workerGroups}
+                options={workerGroups.map(group => ({ id: group.id, name: group.name, label: group.name, value: group.id }))}
                 onChange={(groups) => handleWorkerUpdate(worker.tagId, { groups })}
                 placeholder="Select groups..."
               />

@@ -15,7 +15,6 @@ interface ProjectManagementProps {
 }
 
 const ProjectManagement = ({ 
-  onExport, 
   floors, 
   onUpdateFloorOrder,
   onUpdateFloor 

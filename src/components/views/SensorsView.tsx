@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Sensor, SensorType, sensors as initialSensors, sensorTypes as initialSensorTypes } from '@/config/sensors';
 
-const generateUniqueId = () => {
-  return `S${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
-};
 
 type ViewMode = 'sensors' | 'types';
 
@@ -24,21 +21,7 @@ const SensorsView = () => {
   const handleLocateType = (typeId: string) => {
     console.log(`Locating all sensors of type: ${typeId}`);
   };
-
-  const handleAddSensor = () => {
-    const newSensor: Sensor = {
-      tagId: generateUniqueId(),
-      name: '',
-      type: sensorTypes[0].id,
-    };
     
-    setSensors(prev => [...prev, newSensor]);
-  };
-
-  const handleDeleteSensor = (tagId: string) => {
-    setSensors(prev => prev.filter(sensor => sensor.tagId !== tagId));
-  };
-
   const handleLocateSensor = (tagId: string) => {
     // Implement logic to locate the sensor with the given tagId
     console.log(`Locating sensor with tag ID: ${tagId}`);
