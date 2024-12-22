@@ -7,8 +7,10 @@ import BasicInfo from '@/components/forms/BasicInfo'
 import FloorConfig from '@/components/forms/FloorConfig'
 import Steps from '@/components/layout/Steps'
 import CostReview from '@/components/forms/CostReview'
+import ProjectManagement from '@/components/forms/ProjectManagement'
 import { ProjectBasicInfo } from '@/types/building'
 import { calculateItemCost, getItemName } from '@/config/costs'
+import { Floor } from '@/types/building'
 
 const defaultItems = {
   gate: 0,
@@ -29,14 +31,6 @@ interface BuildingItems {
     normalHoist: number;
     smartHoist: number;
   };
-}
-
-interface Floor {
-  id: string;
-  level: number;
-  selected: boolean;
-  isBase?: boolean;
-  items: Record<string, number>;
 }
 
 export default function Home() {
@@ -68,7 +62,8 @@ export default function Home() {
       level: 0,
       selected: false,
       isBase: true,
-      items: { ...defaultItems }
+      items: { ...defaultItems },
+      zones: []  // Add this
     }
   ]);
 
@@ -81,7 +76,8 @@ export default function Home() {
         level: index + 1,
         selected: false,
         isBase: false,
-        items: { ...defaultItems }
+        items: { ...defaultItems },
+        zones: []  // Add this
       }));
   
       return [baseFloor, ...additionalFloors];
@@ -152,11 +148,6 @@ export default function Home() {
           setValidationError(true);
           return;
         }
-      }
-
-      if (step === 3) {
-        await handleExport();
-        return;
       }
     }
     
@@ -258,13 +249,27 @@ export default function Home() {
               buildingItems={buildingItems}
             />
           )}
+          {step === 4 && (
+            <ProjectManagement 
+              onExport={handleExport}
+              floors={floors}
+              onUpdateFloorOrder={updateFloorOrder}
+              onUpdateFloor={(floorId, updates) => {
+                setFloors(prevFloors => 
+                  prevFloors.map(floor => 
+                    floor.id === floorId ? { ...floor, ...updates } : floor
+                  )
+                );
+              }}
+            />
+          )}
         </div>
         <Footer 
           step={step} 
           setStep={handleStepChange} 
           canProgress={step === 1 ? projectData.name.trim() !== '' : true}
           status={projectData.status}
-          onExport={handleExport}  // Add this line
+          onExport={handleExport}
         />
       </div>
     </div>

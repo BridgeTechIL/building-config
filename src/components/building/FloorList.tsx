@@ -28,13 +28,15 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Zone } from '../../types/building';
 
-interface Floor {
+export interface Floor {
   id: string;
   level: number;
   selected: boolean;
   isBase?: boolean;
   items: Record<string, number>;
+  zones: Zone[];  // Add this new property
 }
 
 interface FloorItemProps {

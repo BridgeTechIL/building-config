@@ -4,34 +4,29 @@ export interface ProjectBasicInfo {
   comments: string;
   status: 'draft' | 'saved';
 }
-  
-  export interface Floor {
-    id: string;
-    level: number;
-    selected: boolean;
-    isBase?: boolean;
-    items: FloorItems;
-  }
-  
-  export interface FloorItems {
-    [key: string]: number;
-    gate: number;
-    motionSensor: number;
-    fireDetection: number;
-    waterDetection: number;
-    floorDetection: number;
-    smartAICamera: number;
-    existingCamera: number;
-    wifi: number;
-    hoistDoor: number;
-  }
-  
-  export interface Step {
-    id: number;
-    label: string;
-    icon: 'info' | 'floors' | 'review';
-  }
-  
-  export interface BuildingProject extends ProjectBasicInfo {
-    floors: Floor[];
-  }
+
+export interface Zone {
+  id: string;
+  name: string;
+  isWifiPoint: boolean;
+  gateId: string;
+}
+
+export interface Floor {
+  id: string;
+  level: number;
+  selected: boolean;
+  isBase?: boolean;
+  items: Record<string, number>;
+  zones: Zone[];  
+}
+
+export interface Step {
+  id: number;
+  label: string;
+  icon: 'info' | 'floors' | 'review' | 'manage';
+}
+
+export interface BuildingProject extends ProjectBasicInfo {
+  floors: Floor[];
+}

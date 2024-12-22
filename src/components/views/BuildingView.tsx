@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import BaseFloor from './BaseFloor';
-import Floor from './Floor';
-import ActiveFloor from './ActiveFloor';
-import Crane from './Crane';
-import MastClimber from './MastClimber';
-import Hoist from './Hoist';
+import BaseFloor from '@/components/building/BaseFloor';
+import Floor from '@/components/building/Floor';
+import ActiveFloor from '@/components/building/ActiveFloor';
+import Crane from '@/components/building/Crane';
+import MastClimber from '@/components/building/MastClimber';
+import Hoist from '@/components/building/Hoist';
 
 interface BuildingItems {
   crane: number;

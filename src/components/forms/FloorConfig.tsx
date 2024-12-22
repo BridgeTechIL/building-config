@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import FloorList from '@/components/building/FloorList';
 import BuildingItems from '@/components/building/BuildingItems';
-
-
-interface Floor {
-  id: string;
-  level: number;
-  selected: boolean;
-  isBase?: boolean;
-  items: Record<string, number>;
-}
+import { Floor } from '@/types/building';
 
 
 interface FloorConfigProps {

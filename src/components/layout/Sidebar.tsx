@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Minus, ZoomIn, ZoomOut } from 'lucide-react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import BuildingView from '@/components/building/BuildingView';
+import BuildingView from '@/components/views/BuildingView';
 
 interface BuildingItems {
   crane: number;
