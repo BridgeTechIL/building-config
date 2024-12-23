@@ -229,7 +229,7 @@ export default function Home() {
 
           // Ensure iframe exists and its contentWindow is accessible
           if (iframe && iframe.contentWindow) {
-            const contentWindow = iframe.contentWindow as any; // Bypass TypeScript for simplicity
+            const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void };
             const iframeDocument = contentWindow.document;
 
             // Safely attempt to access the DOM element and call the function
