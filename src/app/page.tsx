@@ -229,9 +229,7 @@ export default function Home() {
           if (iframe && iframe.contentWindow) {
             const floorAmount = iframe.contentWindow.document.getElementById('floorInput')
             if (floorAmount) {
-              // @ts-ignore
               floorAmount.value = floorCount + 1
-              // @ts-ignore
               iframe.contentWindow.updateFloors()
             }
           }

@@ -1229,6 +1229,20 @@
 
             
     </script>
+    <script>
+    // Check if the current window is inside an iframe
+    if (window.self !== window.top) {
+        // Hide the controls div
+        const controlsDiv = document.getElementById('controls');
+        if (controlsDiv) {
+            controlsDiv.style.display = 'none';
+        }
+        const instructionsDiv = document.getElementById('instructions');
+        if (instructionsDiv) {
+            instructionsDiv.style.display = 'none';
+        }
+    }
+    </script>
     <div id="wifiModal" class="modal">
        <h3>Select floors for WIFI</h3>
        <div id="wifiFloors" style="max-height: 300px; overflow-y: auto;"></div>
