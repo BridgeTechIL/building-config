@@ -9,6 +9,7 @@ export interface Zone {
   id: string;
   name: string;
   isWifiPoint: boolean;
+  isDangerPoint: boolean;
   gateId: string;
 }
 

@@ -168,7 +168,7 @@
             let wifiFloors = new Set();
             let workers = [];
             let isWorkersVisible = false;
-            let ground_floor = 8;
+            let ground_floor = 0;
             let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
             window.activeMenu = null;
 
@@ -331,7 +331,7 @@
                 canvas.width = 1024;
                 canvas.height = 1024;
                 context.font = 'Bold 400px Arial';
-                context.fillStyle = 'white';
+                context.fillStyle = 'black';
                 context.textAlign = 'center';
                 let floorName = floor - ground_floor;
                 context.fillText(floor === ground_floor ? 'L' : floorName, 512, 612);
@@ -462,136 +462,183 @@
                 contentDiv.appendChild(img);
             }
 
-            function createAnimatedFloorView(floorNumber) {
-                console.log("Starting animation sequence:", { isAnimating, floorNumber });
 
-                // If we're already animating, queue this request
-                if (isAnimating) {
-                    console.log("Animation in progress, ignoring new request");
-                    return;
+                let originalCameraPosition = null;
+                let originalCameraLookAt = null;
+
+                function createAnimatedFloorView(floorNumber) {
+                    console.log("Starting animation sequence:", { isAnimating, floorNumber });
+
+                    // If we're already animating, queue this request
+                    if (isAnimating) {
+                        console.log("Animation in progress, ignoring new request");
+                        return;
+                    }
+
+                    isAnimating = true;
+
+                    // Store original camera position if not already stored
+                    if (!originalCameraPosition) {
+                        originalCameraPosition = camera.position.clone();
+                        originalCameraLookAt = new THREE.Vector3(0, totalFloors * floorHeight / 2, 0);
+                    }
+
+                    // If there's an active floor, retract it first
+                    if (window.activeFloorGroup) {
+                        console.log("Retracting current floor", window.activeFloorGroup.position.y / floorHeight);
+                        const currentGroup = window.activeFloorGroup;
+                        const slideDistance = buildingWidth * -1.2;
+                        let startTime = null;
+                        const returnDuration = 1000;
+
+                        function returnAnimation(currentTime) {
+                            if (!startTime) startTime = currentTime;
+                            const elapsed = currentTime - startTime;
+                            const progress = Math.min(elapsed / returnDuration, 1);
+
+                            // First half: un-rotate
+                            if (progress <= 0.5) {
+                                const rotateProgress = 1 - (progress * 2);
+                                currentGroup.rotation.x = rotateProgress * Math.PI / 2;
+                            }
+
+                            // Second half: slide back
+                            if (progress > 0.5) {
+                                const slideProgress = 1 - ((progress - 0.5) * 2);
+                                currentGroup.position.x = slideDistance * slideProgress;
+                            }
+
+                            // Always animate camera back during floor return
+                            const cameraProgress = Math.min(elapsed / returnDuration, 1);
+                            const easing = easeInOutCubic(cameraProgress);
+
+                            // Always animate camera position and zoom
+                            if (floorNumber !== null) {
+                                // If transitioning to new floor, maintain the wider view
+                                const midwayPosition = camera.position.clone();
+                            } else {
+                                // Return to original position and zoom when closing
+                                camera.position.lerp(originalCameraPosition, easing);
+                            }
+                            camera.lookAt(originalCameraLookAt);
+
+                            if (progress < 1) {
+                                requestAnimationFrame(returnAnimation);
+                            } else {
+                                // Show original components
+                                if (currentGroup.originalComponents) {
+                                    currentGroup.originalComponents.forEach(comp => {
+                                        comp.visible = true;
+                                    });
+                                }
+
+                                scene.remove(currentGroup);
+                                window.activeFloorGroup = null;
+
+                                // Important: Now start the new floor animation
+                                if (floorNumber !== null) {
+                                    console.log("Starting new floor animation for floor", floorNumber);
+                                    setTimeout(() => {
+                                        isAnimating = false;  // Reset animation flag before starting new animation
+                                        animateNewFloor(floorNumber);
+                                    }, 50);  // Small delay to ensure clean transition
+                                } else {
+                                    isAnimating = false;
+                                }
+                            }
+                        }
+
+                        requestAnimationFrame(returnAnimation);
+                    } else if (floorNumber !== null) {
+                        // No active floor, just animate the new one
+                        console.log("Directly animating new floor", floorNumber);
+                        animateNewFloor(floorNumber);
+                    }
                 }
 
-                isAnimating = true;
+                function animateNewFloor(floorNumber) {
+                    isAnimating = true;
+                    const floorGroup = new THREE.Group();
+                    const floorY = floorNumber * floorHeight;
 
-                // If there's an active floor, retract it first
-                if (window.activeFloorGroup) {
-                    console.log("Retracting current floor", window.activeFloorGroup.position.y / floorHeight);
-                    const currentGroup = window.activeFloorGroup;
+                    // Collect and clone floor components
+                    scene.children.forEach(child => {
+                        if (child.position.y >= floorY && child.position.y <= floorY + floorHeight) {
+                            const clone = child.clone(true);
+                            if (child.isQuadrant) {
+                                clone.isQuadrant = true;
+                                clone.quadrantId = child.quadrantId;
+                            }
+                            child.visible = false;
+                            clone.position.sub(new THREE.Vector3(0, floorY, 0));
+                            floorGroup.add(clone);
+                        }
+                    });
+
+                    floorGroup.position.y = floorY;
+                    scene.add(floorGroup);
+                    window.activeFloorGroup = floorGroup;
+
+                    // Store original components for restoration
+                    window.activeFloorGroup.originalComponents = scene.children
+                        .filter(child => child.position.y >= floorY && child.position.y <= floorY + floorHeight);
+
                     const slideDistance = buildingWidth * -1.2;
                     let startTime = null;
-                    const returnDuration = 1000;
+                    const duration = 1000;
 
-                    function returnAnimation(currentTime) {
+                    // Calculate target camera position - move back and left
+                    const targetCameraPosition = new THREE.Vector3(
+                        slideDistance / 2,  // Move left
+                        camera.position.y,  // Maintain same height
+                        camera.position.z + buildingDepth // Step back
+                    );
+
+                    // Keep looking at the center point
+                    const lookAtPoint = new THREE.Vector3(
+                        slideDistance / 2,  // Look at midpoint between building and extended floor
+                        floorY + floorHeight / 2,
+                        0
+                    );
+
+                    function slideOutAnimation(currentTime) {
                         if (!startTime) startTime = currentTime;
                         const elapsed = currentTime - startTime;
-                        const progress = Math.min(elapsed / returnDuration, 1);
+                        const progress = Math.min(elapsed / duration, 1);
 
-                        // First half: un-rotate
+                        // Easing function for smoother animation
+                        const easing = easeInOutCubic(progress);
+
                         if (progress <= 0.5) {
-                            const rotateProgress = 1 - (progress * 2);
-                            currentGroup.rotation.x = rotateProgress * Math.PI / 2;
+                            const slideProgress = progress * 2;
+                            floorGroup.position.x = slideDistance * slideProgress;
                         }
 
-                        // Second half: slide back
                         if (progress > 0.5) {
-                            const slideProgress = 1 - ((progress - 0.5) * 2);
-                            currentGroup.position.x = slideDistance * slideProgress;
+                            const rotateProgress = (progress - 0.5) * 2;
+                            floorGroup.rotation.x = rotateProgress * Math.PI / 2;
                         }
+
+                        // Animate camera position with simple translation
+                        camera.position.lerp(targetCameraPosition, easing);
+                        camera.lookAt(lookAtPoint);
 
                         if (progress < 1) {
-                            requestAnimationFrame(returnAnimation);
+                            requestAnimationFrame(slideOutAnimation);
                         } else {
-                            // Show original components
-                            if (currentGroup.originalComponents) {
-                                currentGroup.originalComponents.forEach(comp => {
-                                    comp.visible = true;
-                                });
-                            }
-
-                            scene.remove(currentGroup);
-                            window.activeFloorGroup = null;
-
-                            // Important: Now start the new floor animation
-                            if (floorNumber !== null) {
-                                console.log("Starting new floor animation for floor", floorNumber);
-                                setTimeout(() => {
-                                    isAnimating = false;  // Reset animation flag before starting new animation
-                                    animateNewFloor(floorNumber);
-                                }, 50);  // Small delay to ensure clean transition
-                            } else {
-                                isAnimating = false;
-                            }
+                            isAnimating = false;
                         }
                     }
 
-                    requestAnimationFrame(returnAnimation);
-                } else if (floorNumber !== null) {
-                    // No active floor, just animate the new one
-                    console.log("Directly animating new floor", floorNumber);
-                    animateNewFloor(floorNumber);
-                }
-            }
-
-            function animateNewFloor(floorNumber) {
-                isAnimating = true;
-                const floorGroup = new THREE.Group();
-                const floorY = floorNumber * floorHeight;
-
-                // Collect and clone floor components
-                scene.children.forEach(child => {
-                    if (child.position.y >= floorY && child.position.y <= floorY + floorHeight) {
-                        const clone = child.clone(true); // Use true to clone all properties
-
-                        // Make sure we copy over the quadrant properties to the clone
-                        if (child.isQuadrant) {
-                            clone.isQuadrant = true;
-                            clone.quadrantId = child.quadrantId;
-                        }
-
-                        // Hide original
-                        child.visible = false;
-
-                        clone.position.sub(new THREE.Vector3(0, floorY, 0));
-                        floorGroup.add(clone);
-                    }
-                });
-
-                floorGroup.position.y = floorY;
-                scene.add(floorGroup);
-                window.activeFloorGroup = floorGroup;
-
-                // Store original components for restoration
-                window.activeFloorGroup.originalComponents = scene.children
-                    .filter(child => child.position.y >= floorY && child.position.y <= floorY + floorHeight);
-
-                const slideDistance = buildingWidth * -1.2;
-                let startTime = null;
-                const duration = 1000;
-
-                function slideOutAnimation(currentTime) {
-                    if (!startTime) startTime = currentTime;
-                    const elapsed = currentTime - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-
-                    if (progress <= 0.5) {
-                        const slideProgress = progress * 2;
-                        floorGroup.position.x = slideDistance * slideProgress;
-                    }
-
-                    if (progress > 0.5) {
-                        const rotateProgress = (progress - 0.5) * 2;
-                        floorGroup.rotation.x = rotateProgress * Math.PI / 2;
-                    }
-
-                    if (progress < 1) {
-                        requestAnimationFrame(slideOutAnimation);
-                    } else {
-                        isAnimating = false;
-                    }
+                    requestAnimationFrame(slideOutAnimation);
                 }
 
-                requestAnimationFrame(slideOutAnimation);
-            }
+                // Easing function for smoother animation
+                function easeInOutCubic(t) {
+                    return t < 0.5
+                        ? 4 * t * t * t
+                        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                }
 
             function createBuilding() {
                 const gapSize = 0.5;
@@ -655,19 +702,13 @@
                     ];
 
                     // Create floor plane
-                    if (floor === ground_floor) {
-                        const groundGeometry = new THREE.BoxGeometry(buildingWidth * 2, wallThickness, buildingDepth * 2);
-                        const groundMesh = new THREE.Mesh(groundGeometry, materials.floor.clone());
-                        groundMesh.position.y = floor * floorHeight;
-                        scene.add(groundMesh);
-                    } else {
-                        const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
-                        const floorMaterial = floor < ground_floor ? materials.underground.clone() : materials.floor.clone();
-                        const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-                        floorMesh.position.y = floor * floorHeight;
-                        floorMesh.isFloor = true;
-                        scene.add(floorMesh);
-                    }
+                    const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
+                    const floorMaterial = floor < ground_floor ? materials.underground.clone() : materials.floor.clone();
+                    const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+                    floorMesh.position.y = floor * floorHeight;
+                    floorMesh.isFloor = true;
+                    scene.add(floorMesh);
+                    
 
                     // // Add outer shell walls
                     // outerWallGeometries.forEach((geometry, i) => {

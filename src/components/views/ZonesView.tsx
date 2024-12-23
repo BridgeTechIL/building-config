@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Plus, Camera, Wifi, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Plus, Camera, Wifi, Trash2, AlertTriangle } from 'lucide-react';
 import { floorCameras } from '@/config/cameras';
 
 import {
@@ -129,8 +129,9 @@ function ZoneFloorItem({
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-12 gap-4 text-sm text-gray-500 font-medium mb-4">
                     <div className="col-span-5">NAME</div>
-                    <div className="col-span-3">GATE ID</div>
-                    <div className="col-span-3">WIFI POINT</div>
+                    <div className="col-span-2">GATE ID</div>
+                    <div className="col-span-2">WIFI</div>
+                    <div className="col-span-2">DANGER</div>
                     <div className="col-span-1"></div>
                   </div>
                   <div className="space-y-3">
@@ -145,15 +146,23 @@ function ZoneFloorItem({
                             placeholder="Zone name"
                           />
                         </div>
-                        <div className="col-span-3 text-gray-500">
+                        <div className="col-span-2 text-gray-500">
                           {zone.gateId}
                         </div>
-                        <div className="col-span-3">
+                        <div className="col-span-2">
                           <button
                             onClick={() => onUpdateZone(floor.id, zone.id, { isWifiPoint: !zone.isWifiPoint })}
                             className={`p-2 rounded-md ${zone.isWifiPoint ? 'text-cyan-500 bg-white' : 'text-gray-400 bg-white'}`}
                           >
                             <Wifi size={18} />
+                          </button>
+                        </div>
+                        <div className="col-span-2">
+                          <button
+                            onClick={() => onUpdateZone(floor.id, zone.id, { isDangerPoint: !zone.isDangerPoint })}
+                            className={`p-2 rounded-md ${zone.isDangerPoint ? 'text-red-500 bg-white' : 'text-gray-400 bg-white'}`}
+                          >
+                            <AlertTriangle size={18} />
                           </button>
                         </div>
                         <div className="col-span-1 flex justify-end">

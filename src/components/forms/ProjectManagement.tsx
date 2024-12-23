@@ -36,6 +36,7 @@ const ProjectManagement = ({
       id: `zone_${Date.now()}`,
       name: `Zone ${floor.zones.length + 1}`,
       isWifiPoint: false,
+      isDangerPoint: false,
       gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`
     };
 
