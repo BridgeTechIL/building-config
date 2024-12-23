@@ -225,11 +225,20 @@ export default function Home() {
         height="100%"
         onLoad={() => {
           const iframe = document.querySelector('iframe');
+
+          // Ensure iframe exists and its contentWindow is accessible
           if (iframe && iframe.contentWindow) {
-            const floorAmount = iframe.contentWindow.document.getElementById('floorInput')
+            const contentWindow = iframe.contentWindow as any; // Bypass TypeScript for simplicity
+            const iframeDocument = contentWindow.document;
+
+            // Safely attempt to access the DOM element and call the function
+            const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
             if (floorAmount) {
-              floorAmount.value = floorCount + 1
-              iframe.contentWindow.updateFloors()
+              floorAmount.value = String(floorCount + 1); // Ensure value is a string
+            }
+
+            if (typeof contentWindow.updateFloors === 'function') {
+              contentWindow.updateFloors();
             }
           }
         }}
@@ -241,22 +250,22 @@ export default function Home() {
              background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
            }}>
         <Header projectName={step === 1 ? '' : projectData.name}/>
-        <Steps currentStep={step} />
+        <Steps currentStep={step}/>
         <div className="flex-1 relative overflow-hidden">
           {step === 1 && (
-            <BasicInfo 
-              ref={basicInfoRef}
-              formData={projectData}
-              updateField={updateProjectField}
-              hasError={validationError}
-            />
+              <BasicInfo
+                  ref={basicInfoRef}
+                  formData={projectData}
+                  updateField={updateProjectField}
+                  hasError={validationError}
+              />
           )}
           {step === 2 && (
-            <FloorConfig 
-              floors={floors}
-              activeFloor={activeFloor}
-              buildingItems={buildingItems}
-              onUpdateItem={updateFloorItem}
+              <FloorConfig
+                  floors={floors}
+                  activeFloor={activeFloor}
+                  buildingItems={buildingItems}
+                  onUpdateItem={updateFloorItem}
               onUpdateOrder={updateFloorOrder}
               onClearItems={clearFloorItems}
               onUpdateBuildingItem={updateBuildingItem}
