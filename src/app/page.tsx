@@ -209,18 +209,40 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-white">
-      <Sidebar 
-        floorCount={floorCount}
-        setFloorCount={setFloorCount}
-        activeFloor={activeFloor}
-        setActiveFloor={setActiveFloor}
-        buildingItems={buildingItems}
-      />
-      <div className="w-1/2 flex flex-col relative shadow-xl" 
+{step < 4 ? (
+  <Sidebar
+    floorCount={floorCount}
+    setFloorCount={setFloorCount}
+    activeFloor={activeFloor}
+    setActiveFloor={setActiveFloor}
+    buildingItems={buildingItems}
+  />
+) : (
+  <div className="w-1/2 bg-white p-8 relative flex flex-col h-full">
+    <iframe
+        src="/buildingModel.html"
+        width="100%"
+        height="100%"
+        onLoad={() => {
+          const iframe = document.querySelector('iframe');
+          if (iframe && iframe.contentWindow) {
+            const floorAmount = iframe.contentWindow.document.getElementById('floorInput')
+            if (floorAmount) {
+              // @ts-ignore
+              floorAmount.value = floorCount + 1
+              // @ts-ignore
+              iframe.contentWindow.updateFloors()
+            }
+          }
+        }}
+    ></iframe>
+  </div>
+)}
+      <div className="w-1/2 flex flex-col relative shadow-xl"
            style={{
              background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
            }}>
-        <Header projectName={step === 1 ? '' : projectData.name} />
+        <Header projectName={step === 1 ? '' : projectData.name}/>
         <Steps currentStep={step} />
         <div className="flex-1 relative overflow-hidden">
           {step === 1 && (

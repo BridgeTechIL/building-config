@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Building X-Ray Renderer</title>
+    <style>
+        body { margin: 0; }
+        canvas { width: 100%; height: 100%; }
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .control-btn {
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .control-btn:hover {
+            background: rgba(0,0,0,0.7);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+        }
+        .modal input {
+            margin: 10px;
+            padding: 5px;
+        }
+        .modal button {
+            margin: 5px;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .modal button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .worker {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background-color: yellow;
+            }
+
+        .quadrant-menu {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid white;
+            border-radius: 5px;
+            padding: 5px 0;
+            z-index: 1000 !important;
+        }
+
+        .quadrant-menu-item {
+            padding: 8px 20px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .quadrant-menu-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        W/S: Forward/Back<br>
+        A/D: Left/Right<br>
+        Q/E: Up/Down<br>
+        Arrows: Rotate
+    </div>
+
+    <div id="controls">
+        <button class="control-btn" id="wifiConfig">Add WIFI</button>
+        <button class="control-btn" id="lobbyFloor">Define Lobby Floor</button>
+        <button class="control-btn" id="rojiBoxes">Show Roji Boxes</button>
+        <button class="control-btn" id="toggleElevators">Add elevators</button>
+        <button class="control-btn" id="floorAmount">Define floor amount</button>
+        <button class="control-btn" id="toggleWorkers">Show Workers</button>
+    </div>
+    <div id="floorInfoModal" class="modal">
+        <h3 id="floorInfoTitle"></h3>
+        <div id="floorInfoContent">
+            <img
+                id="floorImage"
+                src="floor.png"
+                style="height: 70%; width: 70%; cursor: pointer;"
+                onclick="replaceWithIframe('https://player.castr.com/live_1deb88e0b56e11ef8f0e3fcb84ef4d27')"
+            >
+        </div>
+        <button onclick="restoreImage()">Close</button>
+    </div>
+
+    <div id="floorModal" class="modal">
+        <h3>Enter number of floors:</h3>
+        <input type="number" id="floorInput" min="1" max="100" value="25">
+        <br>
+        <button onclick="updateFloors()">Apply</button>
+        <button onclick="document.getElementById('floorModal').style.display='none'">Cancel</button>
+    </div>
+    <div id="lobbyFloorModal" class="modal">
+        <h3>Enter number of floors:</h3>
+        <input type="number" id="lobbyFloorInput" min="0" max="100" value="0">
+        <br>
+        <button onclick="updateLobbyFloor()">Set</button>
+        <button onclick="document.getElementById('lobbyFloorModal').style.display='none'">Cancel</button>
+    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
+        import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+        // Make THREE available globally for your existing code
+        window.THREE = THREE;
+
+        window.onload = function() {
+            let scene, camera, renderer, controls;
+            window.activeFloorGroup = null;
+            let isAnimating = false;
+            let totalFloors = 16;
+            const buildingWidth = 30;
+            const buildingDepth = 16;
+            const floorHeight = 3;
+            const wallThickness = 0.1;
+            let rojiBoxes = [];
+            let elevators = [];
+            let rojiBlinkInterval;
+            let isRojiVisible = false;
+            let isElevatorsVisible = true;
+            //let wifiFloors = new Set([0,1,2,3,4,5,6,7,8,9]);
+            let wifiFloors = new Set();
+            let workers = [];
+            let isWorkersVisible = false;
+            let ground_floor = 8;
+            let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
+            window.activeMenu = null;
+
+            function createHelmetSprite(color) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+
+                // Draw helmet
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                ctx.moveTo(10, 40);
+                ctx.bezierCurveTo(10, 20, 54, 20, 54, 40);
+                ctx.lineTo(54, 45);
+                ctx.quadraticCurveTo(32, 50, 10, 45);
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw helmet brim
+                ctx.beginPath();
+                ctx.moveTo(5, 40);
+                ctx.lineTo(59, 40);
+                ctx.lineTo(57, 43);
+                ctx.lineTo(7, 43);
+                ctx.closePath();
+                ctx.fill();
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true
+                });
+                return new THREE.Sprite(spriteMaterial);
+            }
+
+            function createNumberSprite(number) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(number.toString(), 32, 32);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true
+                });
+                return new THREE.Sprite(spriteMaterial);
+            }
+
+            function init() {
+                scene = new THREE.Scene();
+                scene.background  = new THREE.Color(0xffffff);
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+
+                // Add click event listener to renderer
+                renderer.domElement.addEventListener('click', onMouseClick, false);
+
+                // Initialize controls globally
+                // controls = new OrbitControls(camera, renderer.domElement);
+                // controls.enableDamping = true;
+                // controls.dampingFactor = 0.05;
+                // controls.screenSpacePanning = false;
+                // controls.minDistance = 10;
+                // controls.maxDistance = 500;
+                // controls.maxPolarAngle = Math.PI / 2;
+
+                createBuilding();
+                createBuildingLines();
+
+                camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
+                camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                
+                
+                animate();
+            }
+
+            const materials = {
+                floor: new THREE.MeshBasicMaterial({
+                    color: 0xcccccc,
+                    transparent: true,
+                    opacity: 0.1
+                }),
+                underground: new THREE.MeshBasicMaterial({
+                    color: 0x039BE5,
+                    transparent: true,
+                    opacity: 0.3
+                }),
+                elevator: new THREE.MeshBasicMaterial({
+                    color: 0x0066ff,
+                    transparent: true,
+                    opacity: 0.5
+                }),
+                stair: new THREE.MeshBasicMaterial({
+                    color: 0x00ff66,
+                    transparent: true,
+                    opacity: 0.6
+                }),
+                stairStep: new THREE.MeshBasicMaterial({
+                    color: 0x888888,
+                    transparent: false,
+                    opacity: 1
+                }),
+                line: new THREE.LineBasicMaterial({
+                    color: 0x113131,
+                    linewidth: 1
+                }),
+                rojiLight: new THREE.SpriteMaterial({
+                    color: 0xff0000,
+                    transparent: true,
+                    opacity: 0.8,
+                    depthTest: false
+                })
+            };
+
+            function createWarningSign() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+
+                // Draw warning triangle
+                ctx.beginPath();
+                ctx.fillStyle = 'yellow';
+                ctx.moveTo(128, 40);
+                ctx.lineTo(216, 200);
+                ctx.lineTo(40, 200);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+
+                // Draw exclamation mark
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 100px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('!', 128, 140);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.SpriteMaterial({ map: texture });
+                const sprite = new THREE.Sprite(material);
+                sprite.scale.set(2, 2, 1);
+                return sprite;
+            }
+
+            function createFloorLabel(floor, yPosition) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 1024;
+                canvas.height = 1024;
+                context.font = 'Bold 400px Arial';
+                context.fillStyle = 'white';
+                context.textAlign = 'center';
+                let floorName = floor - ground_floor;
+                context.fillText(floor === ground_floor ? 'L' : floorName, 512, 612);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.position.set(-buildingWidth/2 - 4, yPosition + floorHeight/2, 0);
+                sprite.scale.set(8, 4, 1);
+                scene.add(sprite);
+            }
+
+            function createRojiBoxes() {
+                rojiBoxes.forEach(box => scene.remove(box));
+                rojiBoxes = [];
+
+                for (let floor = 0; floor < totalFloors; floor++) {
+                    const stairLight = new THREE.Sprite(materials.rojiLight.clone());
+                    stairLight.scale.set(0.4, 0.4, 0.4);
+                    stairLight.position.set(
+                        buildingWidth/2 - 3,
+                        floor * floorHeight + floorHeight/2,
+                        1.2
+                    );
+
+                    const elevatorLight = new THREE.Sprite(materials.rojiLight.clone());
+                    elevatorLight.scale.set(0.4, 0.4, 0.4);
+                    elevatorLight.position.set(
+                       2,
+                       floor * floorHeight + floorHeight/2,
+                       buildingDepth/2
+                   );
+
+                    scene.add(stairLight);
+                    scene.add(elevatorLight);
+                    rojiBoxes.push(stairLight, elevatorLight);
+                }
+            }
+
+            function toggleRojiBoxes() {
+                const btn = document.getElementById('rojiBoxes');
+                if (!isRojiVisible) {
+                    createRojiBoxes();
+                    rojiBlinkInterval = setInterval(() => {
+                        rojiBoxes.forEach(box => {
+                            box.material.opacity = box.material.opacity === 0.8 ? 0.2 : 0.8;
+                        });
+                    }, 300);
+                    btn.textContent = 'Hide Roji Boxes';
+                } else {
+                    clearInterval(rojiBlinkInterval);
+                    rojiBoxes.forEach(box => scene.remove(box));
+                    rojiBoxes = [];
+                    btn.textContent = 'Show Roji Boxes';
+                }
+                isRojiVisible = !isRojiVisible;
+            }
+
+            function createElevators() {
+                // Create the main elevator shafts first
+                for (let floor = 0; floor < totalFloors; floor++) {
+                    const elevator1 = new THREE.Mesh(
+                        new THREE.BoxGeometry(2.5, floorHeight, 2.5),
+                        materials.elevator
+                    );
+                    elevator1.position.set(
+                        0,
+                        floor * floorHeight + floorHeight/2,
+                        buildingDepth/2 + 2
+                    );
+
+                    const elevator2 = new THREE.Mesh(
+                        new THREE.BoxGeometry(2.5, floorHeight, 2.5),
+                        materials.elevator
+                    );
+                    elevator2.position.set(
+                        4,
+                        floor * floorHeight + floorHeight/2,
+                        buildingDepth/2 + 2
+                    )
+
+                    scene.add(elevator1);
+                    scene.add(elevator2);
+
+                    elevators.push(elevator1, elevator2);
+                }
+            }
+
+            function resetFloorPosition() {
+                if (!window.activeFloorGroup || isAnimating) return;
+                createAnimatedFloorView(null);
+            }
+
+            function removeElevators() {
+                elevators.forEach(elevator => scene.remove(elevator));
+                elevators = [];
+            }
+
+            function toggleElevators() {
+                const btn = document.getElementById('toggleElevators');
+                if (!isElevatorsVisible) {
+                    createElevators();
+                    btn.textContent = 'Hide elevators';
+                } else {
+                    removeElevators();
+                    btn.textContent = 'Add elevators';
+                }
+                isElevatorsVisible = !isElevatorsVisible;
+            }
+
+            window.restoreImage = function () {
+                document.getElementById('floorInfoModal').style.display='none'
+                const contentDiv = document.getElementById('floorInfoContent');
+
+                // Clear the existing content
+                contentDiv.innerHTML = '';
+
+                // Create a new image element
+                const img = document.createElement('img');
+                img.id = 'floorImage';
+                img.src = 'floor.png';
+                img.style.height = '70%';
+                img.style.width = '70%';
+                img.style.cursor = 'pointer';
+                img.onclick = () => replaceWithIframe('https://player.castr.com/live_1deb88e0b56e11ef8f0e3fcb84ef4d27');
+
+                // Add the image back to the content div
+                contentDiv.appendChild(img);
+            }
+
+            function createAnimatedFloorView(floorNumber) {
+                console.log("Starting animation sequence:", { isAnimating, floorNumber });
+
+                // If we're already animating, queue this request
+                if (isAnimating) {
+                    console.log("Animation in progress, ignoring new request");
+                    return;
+                }
+
+                isAnimating = true;
+
+                // If there's an active floor, retract it first
+                if (window.activeFloorGroup) {
+                    console.log("Retracting current floor", window.activeFloorGroup.position.y / floorHeight);
+                    const currentGroup = window.activeFloorGroup;
+                    const slideDistance = buildingWidth * -1.2;
+                    let startTime = null;
+                    const returnDuration = 1000;
+
+                    function returnAnimation(currentTime) {
+                        if (!startTime) startTime = currentTime;
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / returnDuration, 1);
+
+                        // First half: un-rotate
+                        if (progress <= 0.5) {
+                            const rotateProgress = 1 - (progress * 2);
+                            currentGroup.rotation.x = rotateProgress * Math.PI / 2;
+                        }
+
+                        // Second half: slide back
+                        if (progress > 0.5) {
+                            const slideProgress = 1 - ((progress - 0.5) * 2);
+                            currentGroup.position.x = slideDistance * slideProgress;
+                        }
+
+                        if (progress < 1) {
+                            requestAnimationFrame(returnAnimation);
+                        } else {
+                            // Show original components
+                            if (currentGroup.originalComponents) {
+                                currentGroup.originalComponents.forEach(comp => {
+                                    comp.visible = true;
+                                });
+                            }
+
+                            scene.remove(currentGroup);
+                            window.activeFloorGroup = null;
+
+                            // Important: Now start the new floor animation
+                            if (floorNumber !== null) {
+                                console.log("Starting new floor animation for floor", floorNumber);
+                                setTimeout(() => {
+                                    isAnimating = false;  // Reset animation flag before starting new animation
+                                    animateNewFloor(floorNumber);
+                                }, 50);  // Small delay to ensure clean transition
+                            } else {
+                                isAnimating = false;
+                            }
+                        }
+                    }
+
+                    requestAnimationFrame(returnAnimation);
+                } else if (floorNumber !== null) {
+                    // No active floor, just animate the new one
+                    console.log("Directly animating new floor", floorNumber);
+                    animateNewFloor(floorNumber);
+                }
+            }
+
+            function animateNewFloor(floorNumber) {
+                isAnimating = true;
+                const floorGroup = new THREE.Group();
+                const floorY = floorNumber * floorHeight;
+
+                // Collect and clone floor components
+                scene.children.forEach(child => {
+                    if (child.position.y >= floorY && child.position.y <= floorY + floorHeight) {
+                        const clone = child.clone(true); // Use true to clone all properties
+
+                        // Make sure we copy over the quadrant properties to the clone
+                        if (child.isQuadrant) {
+                            clone.isQuadrant = true;
+                            clone.quadrantId = child.quadrantId;
+                        }
+
+                        // Hide original
+                        child.visible = false;
+
+                        clone.position.sub(new THREE.Vector3(0, floorY, 0));
+                        floorGroup.add(clone);
+                    }
+                });
+
+                floorGroup.position.y = floorY;
+                scene.add(floorGroup);
+                window.activeFloorGroup = floorGroup;
+
+                // Store original components for restoration
+                window.activeFloorGroup.originalComponents = scene.children
+                    .filter(child => child.position.y >= floorY && child.position.y <= floorY + floorHeight);
+
+                const slideDistance = buildingWidth * -1.2;
+                let startTime = null;
+                const duration = 1000;
+
+                function slideOutAnimation(currentTime) {
+                    if (!startTime) startTime = currentTime;
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    if (progress <= 0.5) {
+                        const slideProgress = progress * 2;
+                        floorGroup.position.x = slideDistance * slideProgress;
+                    }
+
+                    if (progress > 0.5) {
+                        const rotateProgress = (progress - 0.5) * 2;
+                        floorGroup.rotation.x = rotateProgress * Math.PI / 2;
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(slideOutAnimation);
+                    } else {
+                        isAnimating = false;
+                    }
+                }
+
+                requestAnimationFrame(slideOutAnimation);
+            }
+
+            function createBuilding() {
+                const gapSize = 0.5;
+                const verticalGap = 0.3;
+                const sectionWidth = (buildingWidth - gapSize * 3) / 2;
+                const sectionDepth = (buildingDepth - gapSize * 3) / 2;
+                const sectionHeight = floorHeight - (verticalGap * 2);
+
+                // const quadrantColors = [
+                //     0x0D47A1, // Dark blue
+                //     0x1976D2, // Medium-dark blue
+                //     0x2196F3, // Medium-light blue
+                //     0x64B5F6  // Light blue
+                // ];
+
+
+                // Modified outer shell material with much lower opacity
+                const outerShellMaterial = new THREE.MeshPhongMaterial({
+
+                    color: 65535,
+                    specular: 16777215,
+                    emissive: 0,
+                    transparent: true,
+                    opacity: 0.2,
+                });
+
+                const edgeMaterial = new THREE.LineBasicMaterial({
+                color: 50630,
+                linewidth: 1,
+                linecap: "round",
+                linejoin: "round",
+                transparent: !0,
+                opacity: .5
+            })
+
+
+                let quadrant_id = 0;
+                // Rest of the function remains exactly the same as before
+                for (let floor = 0; floor < totalFloors + 1; floor++) {
+                    if (floor === totalFloors) {
+                        const roofGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
+                        const roofMesh = new THREE.Mesh(roofGeometry, materials.floor.clone());
+                        roofMesh.position.y = floor * floorHeight;
+                        scene.add(roofMesh);
+                        break;
+                    }
+
+                    // Create outer shell walls
+                    const outerWallGeometries = [
+                        new THREE.BoxGeometry(wallThickness, floorHeight, buildingDepth), // Left wall
+                        new THREE.BoxGeometry(wallThickness, floorHeight, buildingDepth), // Right wall
+                        new THREE.BoxGeometry(buildingWidth, floorHeight, wallThickness), // Front wall
+                        new THREE.BoxGeometry(buildingWidth, floorHeight, wallThickness)  // Back wall
+                    ];
+
+                    const outerWallPositions = [
+                        [-buildingWidth/2, floor * floorHeight + floorHeight/2, 0], // Left
+                        [buildingWidth/2, floor * floorHeight + floorHeight/2, 0],  // Right
+                        [0, floor * floorHeight + floorHeight/2, buildingDepth/2],  // Front
+                        [0, floor * floorHeight + floorHeight/2, -buildingDepth/2]  // Back
+                    ];
+
+                    // Create floor plane
+                    if (floor === ground_floor) {
+                        const groundGeometry = new THREE.BoxGeometry(buildingWidth * 2, wallThickness, buildingDepth * 2);
+                        const groundMesh = new THREE.Mesh(groundGeometry, materials.floor.clone());
+                        groundMesh.position.y = floor * floorHeight;
+                        scene.add(groundMesh);
+                    } else {
+                        const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
+                        const floorMaterial = floor < ground_floor ? materials.underground.clone() : materials.floor.clone();
+                        const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+                        floorMesh.position.y = floor * floorHeight;
+                        floorMesh.isFloor = true;
+                        scene.add(floorMesh);
+                    }
+
+                    // // Add outer shell walls
+                    // outerWallGeometries.forEach((geometry, i) => {
+                    //     const wall = new THREE.Mesh(geometry, outerShellMaterial.clone());
+                    //     wall.position.set(...outerWallPositions[i]);
+                        // scene.add(wall);
+                    //
+                    // const edges = new THREE.EdgesGeometry(geometry);
+                    // const edgeMesh = new THREE.LineSegments(edges, edgeMaterial);
+                    // edgeMesh.position.copy(wall.position);
+                    // scene.add(edgeMesh);
+                    // });
+
+                    // Create the four quadrants with their own walls
+                    const quadrants = [
+                        { x: -buildingWidth/4 - gapSize/2, z: -buildingDepth/4 - gapSize/2 },  // Top-left
+                        { x: buildingWidth/4 + gapSize/2, z: -buildingDepth/4 - gapSize/2 },   // Top-right
+                        { x: -buildingWidth/4 - gapSize/2, z: buildingDepth/4 + gapSize/2 },   // Bottom-left
+                        { x: buildingWidth/4 + gapSize/2, z: buildingDepth/4 + gapSize/2 }     // Bottom-right
+                    ];
+
+                    quadrants.forEach((quadrant, index) => {
+                        const quadrantID = `${floor}-${index}`;
+                        const quadrantMaterial = new THREE.MeshPhongMaterial({
+                    color: 50630,
+                    specular: 16777215,
+                    emissive: 0,
+                    shininess: 10,
+                    transparent: !0,
+                    opacity: .2,
+                    depthWrite: !1,
+                    side: THREE.DoubleSide
+                        });
+
+                        const quadWalls = [
+                            // Left wall
+                            {
+                                geometry: new THREE.BoxGeometry(wallThickness, sectionHeight, sectionDepth),
+                                position: [quadrant.x - sectionWidth / 2, floor * floorHeight + floorHeight / 2, quadrant.z]
+                            },
+                            // Right wall
+                            {
+                                geometry: new THREE.BoxGeometry(wallThickness, sectionHeight, sectionDepth),
+                                position: [quadrant.x + sectionWidth / 2, floor * floorHeight + floorHeight / 2, quadrant.z]
+                            },
+                            // Front wall
+                            {
+                                geometry: new THREE.BoxGeometry(sectionWidth, sectionHeight, wallThickness),
+                                position: [quadrant.x, floor * floorHeight + floorHeight / 2, quadrant.z + sectionDepth / 2]
+                            },
+                            // Back wall
+                            {
+                                geometry: new THREE.BoxGeometry(sectionWidth, sectionHeight, wallThickness),
+                                position: [quadrant.x, floor * floorHeight + floorHeight / 2, quadrant.z - sectionDepth / 2]
+                            },
+                            // Top
+                            {
+                                geometry: new THREE.BoxGeometry(sectionWidth, wallThickness, sectionDepth),
+                                position: [quadrant.x, floor * floorHeight + verticalGap + sectionHeight, quadrant.z]
+                            },
+                            // Bottom
+                            {
+                                geometry: new THREE.BoxGeometry(sectionWidth, wallThickness, sectionDepth),
+                                position: [quadrant.x, floor * floorHeight + verticalGap, quadrant.z]
+                            }
+                        ];
+
+                        quadWalls.forEach(wall => {
+                            const wallMesh = new THREE.Mesh(wall.geometry, quadrantMaterial);
+
+                            // Add simple identifier properties
+                            wallMesh.quadrantId = quadrantID;
+                            wallMesh.isQuadrant = true;
+                            wallMesh.position.set(...wall.position);
+
+                            wallMesh.userData.quadrantID = quadrantID;
+
+                            scene.add(wallMesh);
+
+                            const edges = new THREE.EdgesGeometry(wallMesh.geometry);
+                            const edgeMesh = new THREE.LineSegments(edges, edgeMaterial);
+                            edgeMesh.position.copy(wallMesh.position);
+                            scene.add(edgeMesh);
+
+                        });
+                    });
+
+                    // Create floor label
+                    createFloorLabel(floor, floor * floorHeight);
+
+                    // Add stair shaft
+                    const stairShaft = new THREE.Mesh(
+                        new THREE.BoxGeometry(4, floorHeight, 4),
+                        materials.stair
+                    );
+                    stairShaft.position.set(buildingWidth/2 - 1.5, floor * floorHeight + floorHeight/2, 0);
+                    scene.add(stairShaft);
+
+                    // Add stairs
+                    const stairWidth = 4;
+                    const stairLength = floorHeight * Math.sqrt(2) / 3;
+
+                    const stair1 = new THREE.Mesh(
+                        new THREE.BoxGeometry(stairWidth, 0.1, stairLength),
+                        materials.stairStep
+                    );
+                    stair1.position.set(
+                        buildingWidth/2 - 1.5,
+                        floor * floorHeight + floorHeight/2,
+                        1
+                    );
+                    stair1.rotation.z = (floor % 2 === 0) ? Math.PI/5 : -Math.PI/5;
+                    scene.add(stair1);
+                }
+
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                // const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                // directionalLight.position.set(10, 10, 10);
+                // scene.add(directionalLight);
+
+                if (isElevatorsVisible) {
+                    createElevators();
+                }
+                updateWifiFloors();
+            }
+
+            function showWifiModal() {
+                const container = document.getElementById('wifiFloors');
+                container.innerHTML = '';
+
+                for (let i = 0; i < totalFloors; i++) {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label>
+                            <input type="checkbox" value="${i}"
+                                ${wifiFloors.has(i) ? 'checked' : ''}>
+                            Floor ${i === 0 ? 'L' : i + 1}
+                        </label>
+                    `;
+                    container.appendChild(div);
+                }
+                document.getElementById('wifiModal').style.display = 'block';
+            }
+
+            function updateWifiFloors() {
+                scene.children.forEach(child => {
+                    if (child.isFloor) {
+                        const floorNumber = Math.round(child.position.y / floorHeight);
+                        child.material.color.setHex(wifiFloors.has(floorNumber) ? 0xffff00 : 0xcccccc);
+                    }
+                });
+            }
+
+            function getRandomLocation(buildingWidth, buildingDepth) {
+                const marginX = buildingWidth * 0.2;
+                const marginY = buildingDepth * 0.2;
+
+                const minX = -buildingWidth / 2 + marginX;
+                const maxX = buildingWidth / 2 - marginX;
+
+                const minY = -buildingDepth / 2 + marginY;
+                const maxY = buildingDepth / 2 - marginY;
+
+                // Generate random x and y within the central area
+                const x = Math.random() * (maxX - minX) + minX;
+                const y = Math.random() * (maxY - minY) + minY;
+
+                return { x, y };
+            }
+            
+            function onMouseClick(event) {
+                event.preventDefault();
+
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+
+                // If we have an active floor group, we need to check its children specifically
+                if (window.activeFloorGroup) {
+                    // Get intersections with the active floor group's children
+                    const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
+
+                    // Filter to only get quadrant intersections
+                    const quadrantIntersects = floorIntersects.filter(intersect => intersect.object.quadrantId);
+
+                    console.log("Quadrant intersections:",
+                        quadrantIntersects.map(intersect => ({
+                            quadrantId: intersect.object.quadrantId,
+                            distance: intersect.distance,
+                            point: intersect.point
+                        }))
+                    );
+
+                    if (quadrantIntersects.length > 0) {
+                        const clickedObject = quadrantIntersects[0].object;
+                        console.log("Clicked quadrant:", clickedObject.quadrantId);
+
+                        const quadrantParts = clickedObject.quadrantId.split('-');
+                        const floorNumber = parseInt(quadrantParts[0]);
+                        const quadrantIndex = parseInt(quadrantParts[1]);
+
+                        createQuadrantMenu(
+                            event.clientX,
+                            event.clientY,
+                            clickedObject,
+                            floorNumber,
+                            quadrantIndex % 2 ? 1 : -1,  // quadrantX
+                            quadrantIndex < 2 ? -1 : 1   // quadrantZ
+                        );
+                        return;
+                    }
+                }
+
+                // Check all scene objects for regular floor selection
+                const sceneIntersects = raycaster.intersectObjects(scene.children, true);
+
+                if (!window.activeFloorGroup) {
+                    const floorMesh = sceneIntersects.find(intersect => intersect.object.isFloor);
+                    if (floorMesh) {
+                        const floorNumber = Math.round(floorMesh.object.position.y / floorHeight);
+                        createAnimatedFloorView(floorNumber);
+                    }
+                } else {
+                    // Check if we clicked another floor while one is active
+                    const floorMesh = sceneIntersects.find(intersect =>
+                        intersect.object.isFloor &&
+                        Math.abs(intersect.object.position.y / floorHeight -
+                            window.activeFloorGroup.position.y / floorHeight) > 0.1
+                    );
+
+                    if (floorMesh) {
+                        const floorNumber = Math.round(floorMesh.object.position.y / floorHeight);
+                        createAnimatedFloorView(floorNumber);
+                    }
+                    else if (sceneIntersects.length === 0) {
+                        // We clicked on empty space
+                        resetFloorPosition();
+                    }
+                }
+            }
+            
+            function createQuadrantMenu(x, y, quadrant, floorNumber, quadrantX, quadrantZ) {
+                console.log("Creating menu at:", x, y);
+                console.log("Quadrant:", quadrant);
+
+                const quadrantId = `${floorNumber}-${quadrantX}-${quadrantZ}`;
+
+                // Remove existing menu if any
+                if (window.activeMenu) {
+                    console.log("Removing existing menu");
+                    document.body.removeChild(window.activeMenu);
+                    window.activeMenu = null;
+                }
+
+                const menu = document.createElement('div');
+                menu.className = 'quadrant-menu';
+                menu.style.position = 'fixed';
+                menu.style.left = `${x}px`;
+                menu.style.top = `${y}px`;
+                menu.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                menu.style.color = 'white';
+                menu.style.padding = '10px';
+                menu.style.borderRadius = '5px';
+                menu.style.zIndex = '1000';
+                menu.style.border = '1px solid white';
+                menu.style.minWidth = '150px';
+
+                const defineAsDangerous = document.createElement('div');
+                defineAsDangerous.className = 'quadrant-menu-item';
+                defineAsDangerous.style.cursor = 'pointer';
+                defineAsDangerous.style.padding = '5px 10px';
+                defineAsDangerous.textContent = dangerousQuadrants.has(quadrantId) ? 'Remove Dangerous Status' : 'Define as Dangerous';
+
+                const showCamera = document.createElement('div');
+                showCamera.className = 'quadrant-menu-item';
+                showCamera.style.cursor = 'pointer';
+                showCamera.style.padding = '5px 10px';
+                showCamera.textContent = 'View Camera';
+
+                showCamera.addEventListener('click', () => {
+                    const cameraUrl = `https://player.castr.com/live_1deb88e0b56e11ef8f0e3fcb84ef4d27`;
+                    replaceWithIframe(cameraUrl);
+                    showCameraModal();
+                });
+
+                defineAsDangerous.addEventListener('click', () => {
+                    if (dangerousQuadrants.has(quadrantId)) {
+                        dangerousQuadrants.delete(quadrantId);
+                        quadrant.material.color.setHex(quadrant.userData.originalColor || 50630);
+                        if (quadrant.userData.warningSign) {
+                            quadrant.remove(quadrant.userData.warningSign);
+                            quadrant.userData.warningSign = null;
+                        }
+                    } else {
+                        dangerousQuadrants.add(quadrantId);
+                        quadrant.userData.originalColor = quadrant.material.color.getHex();
+                        quadrant.material.color.setHex(0xff0000);
+
+                        const warningSign = createWarningSign();
+                        warningSign.position.set(0, 0, 1);
+                        quadrant.add(warningSign);
+                        quadrant.userData.warningSign = warningSign;
+                    }
+
+                    if (window.activeMenu) {
+                        document.body.removeChild(window.activeMenu);
+                        window.activeMenu = null;
+                    }
+                });
+
+                menu.appendChild(defineAsDangerous);
+                menu.appendChild(showCamera);
+                document.body.appendChild(menu);
+                window.activeMenu = menu;
+
+                console.log("Menu added to DOM:", document.body.contains(menu));
+                console.log("Menu: ", menu);
+            }
+
+            function showCameraModal() {
+                const modal = document.getElementById('floorInfoModal');
+                modal.style.display = 'block';
+            }
+
+            function showFloorInfo(floorNumber) {
+                const modal = document.getElementById('floorInfoModal');
+                const title = document.getElementById('floorInfoTitle');
+                // const content = document.getElementById('floorInfoContent');
+
+                // Set floor name (L for lobby floor, number for others)
+                const floorName = floorNumber === ground_floor ? 'Lobby' : (floorNumber - ground_floor).toString();
+                title.textContent = `Floor ${floorName}`;
+
+                // Add floor information
+                // content.innerHTML = `
+                //     <p>Height: ${(floorNumber * floorHeight).toFixed(1)}m</p>
+                //     <p>WIFI: ${wifiFloors.has(floorNumber) ? 'Enabled' : 'Disabled'}</p>
+                // `;
+
+                modal.style.display = 'block';
+            }
+
+            window.replaceWithIframe = function (url) {
+                const contentDiv = document.getElementById('floorInfoContent');
+
+                // Clear the existing content
+                contentDiv.innerHTML = '';
+
+                // Create a new iframe
+                const iframe = document.createElement('iframe');
+                iframe.src = url;
+                iframe.style.width = '100%';
+                iframe.style.aspectRatio = '16/9'; // Maintains a proper video aspect ratio
+                iframe.style.minHeight = '340px';
+                iframe.frameBorder = '0';
+                iframe.allow = 'autoplay';
+                iframe.allowFullscreen = true;
+
+                // Add the iframe to the content div
+                contentDiv.appendChild(iframe);
+            }
+
+
+            function createBuildingLines() {
+                const corners = [
+                    [-buildingWidth/2, buildingDepth/2],
+                    [buildingWidth/2, buildingDepth/2],
+                    [buildingWidth/2, -buildingDepth/2],
+                    [-buildingWidth/2, -buildingDepth/2]
+                ];
+
+                corners.forEach((corner) => {
+                    const geometry = new THREE.BufferGeometry();
+                    const points = [];
+                    points.push(new THREE.Vector3(corner[0], 0, corner[1]));
+                    points.push(new THREE.Vector3(corner[0], totalFloors * floorHeight, corner[1]));
+                    geometry.setFromPoints(points);
+                    const line = new THREE.Line(geometry, materials.line);
+                    scene.add(line);
+                });
+            }
+
+            const keyboard = {};
+            const moveSpeed = 0.3;
+            const rotationSpeed = 0.02;
+
+            window.addEventListener('keydown', (e) => {
+            keyboard[e.key.toLowerCase()] = true;
+            });
+
+            window.addEventListener('keyup', (e) => {
+            keyboard[e.key.toLowerCase()] = false;
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && window.activeFloorGroup) {
+                    resetFloorPosition();
+                }
+            });
+
+
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                renderer.render(scene, camera);
+                if (controls) controls.update();
+                updateCameraMovement();
+            }
+
+            window.applyWifi = function () {
+                wifiFloors.clear();
+                document.querySelectorAll('#wifiFloors input:checked').forEach(input => {
+                    wifiFloors.add(parseInt(input.value));
+                });
+                updateWifiFloors();
+                document.getElementById('wifiModal').style.display = 'none';
+            };
+
+
+           function createNumberSprite(_number) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const context = canvas.getContext('2d');
+
+                // Draw a number in the center of the canvas
+                context.fillStyle = 'white'; // Text color
+                context.fillRect(0, 0, 512, 512); // White background
+                context.fillStyle = 'black';
+                context.font = 'bold 256px Arial';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(_number, 256, 256);
+
+                // Create a texture and material from the canvas
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.SpriteMaterial({ map: texture });
+                const sprite = new THREE.Sprite(material);
+
+                return sprite;
+            }
+
+
+
+            function toggleWorkers() {
+                const btn = document.getElementById('toggleWorkers');
+                if (!isWorkersVisible) {
+                    // Add helmets to the building
+                    let workerNumber = 1;
+                    for (let floor = 0; floor < totalFloors; floor++) {
+                        const numWorkers = Math.floor(Math.random() * 4) + 1;
+                        for (let i = 0; i < numWorkers; i++) {
+                            const helmetColor = Math.random() < 1/3 ? '#ff0000' : '#ffff00';
+                            const helmet = createHelmetSprite(helmetColor);
+                            
+                            // Position helmet
+                            const randLocation = getRandomLocation(buildingWidth, buildingDepth);
+                            helmet.position.set(
+                                randLocation.x,
+                                floor * floorHeight + floorHeight/2,
+                                randLocation.y
+                            );
+                            helmet.scale.set(2, 2, 2);
+
+                            // Add number
+                            const number = createNumberSprite(workerNumber);
+                            number.position.set(0, 1.5, 0);
+                            helmet.add(number);
+
+                            scene.add(helmet);
+                            workers.push(helmet);
+                            workerNumber++;
+                        }
+                    }
+                    btn.textContent = 'Hide Workers';
+                } else {
+                    // Remove helmets from the building
+                    workers.forEach(helmet => scene.remove(helmet));
+                    workers = [];
+                    btn.textContent = 'Show Workers';
+                }
+                isWorkersVisible = !isWorkersVisible;
+            }
+            document.getElementById('toggleWorkers').addEventListener('click', toggleWorkers);
+
+
+            window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            });
+
+            document.getElementById('floorAmount').addEventListener('click', () => {
+                document.getElementById('floorModal').style.display = 'block';
+            });
+
+            document.getElementById('lobbyFloor').addEventListener('click', () => {
+                document.getElementById('lobbyFloorModal').style.display = 'block';
+            });
+
+            document.getElementById('rojiBoxes').addEventListener('click', toggleRojiBoxes);
+            document.getElementById('toggleElevators').addEventListener('click', toggleElevators);
+            document.getElementById('wifiConfig').addEventListener('click', showWifiModal);
+
+            window.updateFloors = function () {
+                const newFloorCount = parseInt(document.getElementById('floorInput').value);
+                if (newFloorCount > 0 && newFloorCount <= 100) {
+                    while (scene.children.length > 0) {
+                        scene.remove(scene.children[0]);
+                    }
+                    totalFloors = newFloorCount;
+                    createBuilding();
+                    createBuildingLines();
+                    if (isWorkersVisible) { toggleWorkers(); }
+                    camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
+                    camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                }
+                document.getElementById('floorModal').style.display = 'none';
+            }
+
+            window.updateLobbyFloor = function () {
+                const newLobbyFloor = parseInt(document.getElementById('lobbyFloorInput').value);
+                while (scene.children.length > 0) {
+                    scene.remove(scene.children[0]);
+                }
+                ground_floor = newLobbyFloor;
+                createBuilding();
+                createBuildingLines();
+                if (isWorkersVisible) { toggleWorkers(); }
+                camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
+                camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                document.getElementById('lobbyFloorModal').style.display = 'none';
+            }
+
+            function updateCameraMovement() {
+                if (keyboard['w']) camera.translateZ(-moveSpeed);
+                if (keyboard['s']) camera.translateZ(moveSpeed);
+                if (keyboard['a']) camera.translateX(-moveSpeed);
+                if (keyboard['d']) camera.translateX(moveSpeed);
+                if (keyboard['q']) camera.rotation.x += rotationSpeed;
+                if (keyboard['e']) camera.rotation.x -= rotationSpeed;
+                if (keyboard['arrowleft']) camera.rotation.y += rotationSpeed;
+                if (keyboard['arrowright']) camera.rotation.y -= rotationSpeed;
+                if (keyboard['arrowup']) camera.translateY(moveSpeed);
+                if (keyboard['arrowdown']) camera.translateY(-moveSpeed);
+            }
+
+            init();
+
+        }
+
+            
+    </script>
+    <div id="wifiModal" class="modal">
+       <h3>Select floors for WIFI</h3>
+       <div id="wifiFloors" style="max-height: 300px; overflow-y: auto;"></div>
+       <button onclick="applyWifi()">Apply</button>
+       <button onclick="document.getElementById('wifiModal').style.display='none'">Cancel</button>
+    </div>
+</body>
+</html>
