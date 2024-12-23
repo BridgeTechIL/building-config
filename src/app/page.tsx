@@ -13,6 +13,7 @@ import { calculateItemCost, getItemName } from '@/config/costs'
 import { Floor } from '@/types/building'
 
 
+
 const defaultItems = {
   gate: 0,
   motionSensor: 0,
