@@ -229,7 +229,7 @@ export default function Home() {
 
           // Ensure iframe exists and its contentWindow is accessible
           if (iframe && iframe.contentWindow) {
-            const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void };
+            const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void };
             const iframeDocument = contentWindow.document;
 
             // Safely attempt to access the DOM element and call the function
@@ -249,6 +249,16 @@ export default function Home() {
               ]
               contentWindow.showZones(zones);
             }
+
+            if (typeof contentWindow.addCameras === 'function') {
+              const cams = [
+                {name: 'Left', streamUrl: 'https://player.castr.com/live_094d9a001ee811eda8c7d91f796d7ea9', location:{floor_physical: 1, xy: [70,25], is_exact: true}},
+                {name: 'Right', streamUrl: 'https://player.castr.com/live_0f4235e0186e11edaba527aa44cc5f75', location:{floor_physical: 5, xy: [35,50], is_exact: true}},
+                {name: 'Lobby', streamUrl: 'https://player.castr.com/live_4aff5df0551411edb095b3325e745ec8', location:{floor_physical: 3, xy: [5,5], is_exact: true}},
+              ]
+              contentWindow.addCameras(cams);
+            }
+
           }
         }}
     ></iframe>
