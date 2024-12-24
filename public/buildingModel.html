@@ -246,7 +246,7 @@
                 // controls.maxPolarAngle = Math.PI / 2;
 
                 createBuilding();
-                createBuildingLines();
+                // createBuildingLines();
 
                 camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                 camera.lookAt(0, totalFloors * floorHeight / 2, 0);
@@ -339,7 +339,7 @@
                 const texture = new THREE.CanvasTexture(canvas);
                 const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
                 const sprite = new THREE.Sprite(spriteMaterial);
-                sprite.position.set(-buildingWidth/2 - 4, yPosition + floorHeight/2, 0);
+                sprite.position.set(-buildingWidth/2 - 6, yPosition + floorHeight/2, 0);
                 sprite.scale.set(8, 4, 1);
                 scene.add(sprite);
             }
@@ -647,23 +647,6 @@
                 const sectionDepth = (buildingDepth - gapSize * 3) / 2;
                 const sectionHeight = floorHeight - (verticalGap * 2);
 
-                // const quadrantColors = [
-                //     0x0D47A1, // Dark blue
-                //     0x1976D2, // Medium-dark blue
-                //     0x2196F3, // Medium-light blue
-                //     0x64B5F6  // Light blue
-                // ];
-
-
-                // Modified outer shell material with much lower opacity
-                const outerShellMaterial = new THREE.MeshPhongMaterial({
-
-                    color: 65535,
-                    specular: 16777215,
-                    emissive: 0,
-                    transparent: true,
-                    opacity: 0.2,
-                });
 
                 const edgeMaterial = new THREE.LineBasicMaterial({
                 color: 50630,
@@ -686,21 +669,6 @@
                         break;
                     }
 
-                    // Create outer shell walls
-                    const outerWallGeometries = [
-                        new THREE.BoxGeometry(wallThickness, floorHeight, buildingDepth), // Left wall
-                        new THREE.BoxGeometry(wallThickness, floorHeight, buildingDepth), // Right wall
-                        new THREE.BoxGeometry(buildingWidth, floorHeight, wallThickness), // Front wall
-                        new THREE.BoxGeometry(buildingWidth, floorHeight, wallThickness)  // Back wall
-                    ];
-
-                    const outerWallPositions = [
-                        [-buildingWidth/2, floor * floorHeight + floorHeight/2, 0], // Left
-                        [buildingWidth/2, floor * floorHeight + floorHeight/2, 0],  // Right
-                        [0, floor * floorHeight + floorHeight/2, buildingDepth/2],  // Front
-                        [0, floor * floorHeight + floorHeight/2, -buildingDepth/2]  // Back
-                    ];
-
                     // Create floor plane
                     const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
                     const floorMaterial = floor < ground_floor ? materials.underground.clone() : materials.floor.clone();
@@ -708,19 +676,7 @@
                     floorMesh.position.y = floor * floorHeight;
                     floorMesh.isFloor = true;
                     scene.add(floorMesh);
-                    
 
-                    // // Add outer shell walls
-                    // outerWallGeometries.forEach((geometry, i) => {
-                    //     const wall = new THREE.Mesh(geometry, outerShellMaterial.clone());
-                    //     wall.position.set(...outerWallPositions[i]);
-                        // scene.add(wall);
-                    //
-                    // const edges = new THREE.EdgesGeometry(geometry);
-                    // const edgeMesh = new THREE.LineSegments(edges, edgeMaterial);
-                    // edgeMesh.position.copy(wall.position);
-                    // scene.add(edgeMesh);
-                    // });
 
                     // Create the four quadrants with their own walls
                     const quadrants = [
@@ -793,6 +749,48 @@
                             edgeMesh.position.copy(wallMesh.position);
                             scene.add(edgeMesh);
 
+
+                            // Add vertical lines along the x/z-axis, skipping top and bottom walls
+                            if (wall.geometry.parameters.height && wall.geometry.parameters.height > wallThickness) { // Not top or bottom walls
+                                const numLines = 8; // Number of vertical lines
+                                const wallHeight = sectionHeight;
+                                const wallWidth = wall.geometry.parameters.width || sectionWidth;
+                                const step = wallWidth / (numLines + 1); // Spacing between lines
+
+                                for (let i = 1; i <= numLines; i++) {
+                                    const offset = -wallWidth / 2 + i * step;
+
+                                    let lineStart, lineEnd;
+
+                                    if (wall.geometry.parameters.width) { // Vertical wall (e.g., front/back walls)
+                                        lineStart = new THREE.Vector3(
+                                            offset,
+                                            -wallHeight / 2,
+                                            0
+                                        );
+                                        lineEnd = new THREE.Vector3(
+                                            offset,
+                                            wallHeight / 2,
+                                            0
+                                        );
+                                    } else { // Horizontal wall (e.g., left/right walls)
+                                        lineStart = new THREE.Vector3(
+                                            0,
+                                            -wallHeight / 2,
+                                            offset
+                                        );
+                                        lineEnd = new THREE.Vector3(
+                                            0,
+                                            wallHeight / 2,
+                                            offset
+                                        );
+                                    }
+
+                                    const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
+                                    const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
+                                    wallMesh.add(verticalLine); // Add the line as a child of the wall mesh
+                                }
+                            }
                         });
                     });
 
@@ -1229,7 +1227,7 @@
                     }
                     totalFloors = newFloorCount;
                     createBuilding();
-                    createBuildingLines();
+                    // createBuildingLines();
                     if (isWorkersVisible) { toggleWorkers(); }
                     camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                     camera.lookAt(0, totalFloors * floorHeight / 2, 0);
@@ -1244,7 +1242,7 @@
                 }
                 ground_floor = newLobbyFloor;
                 createBuilding();
-                createBuildingLines();
+                // createBuildingLines();
                 if (isWorkersVisible) { toggleWorkers(); }
                 camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                 camera.lookAt(0, totalFloors * floorHeight / 2, 0);
