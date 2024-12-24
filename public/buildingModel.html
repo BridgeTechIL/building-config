@@ -170,7 +170,146 @@
             let isWorkersVisible = false;
             let ground_floor = 0;
             let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
+            let activeItems = [];
+            let itemTitle = null;
+            let titleSprite = null;
             window.activeMenu = null;
+
+             window.addEventListener('message', function (event) {
+                // Handle messages from the parent window
+                if (event.data.type === 'FLOOR_TOGGLE') {
+                    const { floorNumber, action } = event.data;
+
+                    if (action === 'expand') {
+                        // Call your existing floor animation function
+                        createAnimatedFloorView(floorNumber);
+                    } else if (action === 'collapse') {
+                        // Reset the floor position
+                        resetFloorPosition();
+                    }
+                }
+                if (event.data.type === 'SHOW_ITEMS') {
+                     const { title, type, items } = event.data.data;
+
+                     // Clear any existing items
+                     clearExistingItems();
+
+                     // Create and position title
+                     titleSprite = createTextSprite(title);
+                     titleSprite.position.set(0, totalFloors * floorHeight + 5, 0);
+                     titleSprite.scale.set(15, 4, 1);
+                     scene.add(titleSprite);
+                     activeItems.push(titleSprite);
+
+                     // Create and position items
+                     items.forEach(item => {
+                         const sprite = createItemSprite(type);
+                         const label = createTextSprite(item.tag_id, 40);
+
+                         const { floor_physical, xy, is_exact } = item.location;
+                         const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
+
+                         let finalX = worldCoords.x;
+                         let finalZ = worldCoords.z;
+
+                         if (!is_exact) {
+                             finalX = addRandomization(finalX, 2);
+                             finalZ = addRandomization(finalZ, 2);
+                         }
+
+                         const y = floor_physical * floorHeight + (floorHeight / 2);
+
+                         sprite.position.set(finalX, y, finalZ);
+                         sprite.scale.set(2, 2, 1);
+
+                         label.position.set(finalX, y + 1.5, finalZ);
+                         label.scale.set(3, 1, 1);
+
+                         scene.add(sprite);
+                         scene.add(label);
+                         activeItems.push(sprite, label);
+                     });
+
+                     // Reset camera to show all items
+                     resetCameraToShowItems();
+                 }
+            }, false);
+
+            function createTextSprite(text, size = 70) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 128;
+                const context = canvas.getContext('2d');
+
+                context.fillStyle = 'white';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.fillStyle = 'black';
+                context.font = `${size}px Arial`;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                return new THREE.Sprite(spriteMaterial);
+            }
+
+            // Add this function to create item sprites
+            function createItemSprite(type) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+
+                if (type === 'ppl') {
+                    // Draw a person icon
+                    ctx.fillStyle = '#4A90E2';
+                    ctx.beginPath();
+                    ctx.arc(32, 20, 12, 0, Math.PI * 2); // Head
+                    ctx.fill();
+                    ctx.fillRect(20, 35, 24, 25); // Body
+                } else if (type === 'equipment') {
+                    // Draw equipment icon
+                    ctx.fillStyle = '#F5A623';
+                    ctx.fillRect(16, 16, 32, 32);
+                } else if (type === 'sensors') {
+                    // Draw sensor icon
+                    ctx.fillStyle = '#7ED321';
+                    ctx.beginPath();
+                    ctx.arc(32, 32, 16, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                return new THREE.Sprite(spriteMaterial);
+            }
+
+            // Add this function to convert normalized coordinates to world coordinates
+            function normalizedToWorldCoords(x, y, floorWidth, floorDepth) {
+                const worldX = (x / 100 * floorWidth) - (floorWidth / 2);
+                const worldZ = (y / 100 * floorDepth) - (floorDepth / 2);
+                return { x: worldX, z: worldZ };
+            }
+
+            // Add this function to add randomization to coordinates if needed
+            function addRandomization(coord, range) {
+                const randomOffset = (Math.random() - 0.5) * range;
+                return coord + randomOffset;
+            }
+
+            // Add this function to clear existing items
+            function clearExistingItems() {
+                activeItems.forEach(item => {
+                    scene.remove(item);
+                });
+                activeItems = [];
+
+                if (titleSprite) {
+                    scene.remove(titleSprite);
+                    titleSprite = null;
+                }
+            }
 
             function createHelmetSprite(color) {
                 const canvas = document.createElement('canvas');
@@ -259,8 +398,18 @@
                 floor: new THREE.MeshBasicMaterial({
                     color: 0xcccccc,
                     transparent: true,
-                    opacity: 0.1
+                    opacity: 0.2
                 }),
+                // floor: new THREE.MeshPhongMaterial({
+                //     color: 0xcccccc,
+                //     specular: 16777215,
+                //     emissive: 0,
+                //     shininess: 10,
+                //     transparent: true,
+                //     opacity: 0.2,
+                //     depthWrite: false,
+                    
+                // }),
                 underground: new THREE.MeshBasicMaterial({
                     color: 0x039BE5,
                     transparent: true,
@@ -400,7 +549,7 @@
                     elevator1.position.set(
                         0,
                         floor * floorHeight + floorHeight/2,
-                        buildingDepth/2 + 2
+                        -buildingDepth/2 - 2
                     );
 
                     const elevator2 = new THREE.Mesh(
@@ -410,7 +559,7 @@
                     elevator2.position.set(
                         4,
                         floor * floorHeight + floorHeight/2,
-                        buildingDepth/2 + 2
+                        -buildingDepth/2 - 2
                     )
 
                     scene.add(elevator1);
@@ -462,205 +611,199 @@
                 contentDiv.appendChild(img);
             }
 
+            // Define the two camera positions
+            // Define a constant lookAt point that won't change during transitions
+            const CONSTANT_LOOK_AT = {
+                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, 0),
+                ZOOMED_OUT: new THREE.Vector3(-10, totalFloors * floorHeight / 2, 0),
+            } 
 
-                let originalCameraPosition = null;
-                let originalCameraLookAt = null;
+            const CAMERA_POSITIONS = {
+                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 3),
+                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 4)
+            };
 
-                function createAnimatedFloorView(floorNumber) {
-                    console.log("Starting animation sequence:", { isAnimating, floorNumber });
+            // Track camera state independently of floor state
+            let isCameraZoomedOut = false;
 
-                    // If we're already animating, queue this request
-                    if (isAnimating) {
-                        console.log("Animation in progress, ignoring new request");
-                        return;
-                    }
+            function createAnimatedFloorView(floorNumber) {
+                if (isAnimating) return;
+                isAnimating = true;
 
-                    isAnimating = true;
-
-                    // Store original camera position if not already stored
-                    if (!originalCameraPosition) {
-                        originalCameraPosition = camera.position.clone();
-                        originalCameraLookAt = new THREE.Vector3(0, totalFloors * floorHeight / 2, 0);
-                    }
-
-                    // If there's an active floor, retract it first
-                    if (window.activeFloorGroup) {
-                        console.log("Retracting current floor", window.activeFloorGroup.position.y / floorHeight);
-                        const currentGroup = window.activeFloorGroup;
-                        const slideDistance = buildingWidth * -1.2;
-                        let startTime = null;
-                        const returnDuration = 1000;
-
-                        function returnAnimation(currentTime) {
-                            if (!startTime) startTime = currentTime;
-                            const elapsed = currentTime - startTime;
-                            const progress = Math.min(elapsed / returnDuration, 1);
-
-                            // First half: un-rotate
-                            if (progress <= 0.5) {
-                                const rotateProgress = 1 - (progress * 2);
-                                currentGroup.rotation.x = rotateProgress * Math.PI / 2;
-                            }
-
-                            // Second half: slide back
-                            if (progress > 0.5) {
-                                const slideProgress = 1 - ((progress - 0.5) * 2);
-                                currentGroup.position.x = slideDistance * slideProgress;
-                            }
-
-                            // Always animate camera back during floor return
-                            const cameraProgress = Math.min(elapsed / returnDuration, 1);
-                            const easing = easeInOutCubic(cameraProgress);
-
-                            // Always animate camera position and zoom
-                            if (floorNumber !== null) {
-                                // If transitioning to new floor, maintain the wider view
-                                const midwayPosition = camera.position.clone();
-                            } else {
-                                // Return to original position and zoom when closing
-                                camera.position.lerp(originalCameraPosition, easing);
-                            }
-                            camera.lookAt(originalCameraLookAt);
-
-                            if (progress < 1) {
-                                requestAnimationFrame(returnAnimation);
-                            } else {
-                                // Show original components
-                                if (currentGroup.originalComponents) {
-                                    currentGroup.originalComponents.forEach(comp => {
-                                        comp.visible = true;
-                                    });
-                                }
-
-                                scene.remove(currentGroup);
-                                window.activeFloorGroup = null;
-
-                                // Important: Now start the new floor animation
-                                if (floorNumber !== null) {
-                                    console.log("Starting new floor animation for floor", floorNumber);
-                                    setTimeout(() => {
-                                        isAnimating = false;  // Reset animation flag before starting new animation
-                                        animateNewFloor(floorNumber);
-                                    }, 50);  // Small delay to ensure clean transition
-                                } else {
-                                    isAnimating = false;
-                                }
-                            }
-                        }
-
-                        requestAnimationFrame(returnAnimation);
-                    } else if (floorNumber !== null) {
-                        // No active floor, just animate the new one
-                        console.log("Directly animating new floor", floorNumber);
-                        animateNewFloor(floorNumber);
-                    }
-                }
-
-                function animateNewFloor(floorNumber) {
-                    isAnimating = true;
-                    const floorGroup = new THREE.Group();
-                    const floorY = floorNumber * floorHeight;
-
-                    // Collect and clone floor components
-                    scene.children.forEach(child => {
-                        if (child.position.y >= floorY && child.position.y <= floorY + floorHeight) {
-                            const clone = child.clone(true);
-                            if (child.isQuadrant) {
-                                clone.isQuadrant = true;
-                                clone.quadrantId = child.quadrantId;
-                            }
-                            child.visible = false;
-                            clone.position.sub(new THREE.Vector3(0, floorY, 0));
-                            floorGroup.add(clone);
-                        }
-                    });
-
-                    floorGroup.position.y = floorY;
-                    scene.add(floorGroup);
-                    window.activeFloorGroup = floorGroup;
-
-                    // Store original components for restoration
-                    window.activeFloorGroup.originalComponents = scene.children
-                        .filter(child => child.position.y >= floorY && child.position.y <= floorY + floorHeight);
-
-                    const slideDistance = buildingWidth * -1.2;
+                // If there's an active floor, retract it first
+                if (window.activeFloorGroup) {
+                    const currentGroup = window.activeFloorGroup;
+                    const slideDistance = buildingWidth * -1.5;
                     let startTime = null;
-                    const duration = 1000;
+                    const returnDuration = 1000;
 
-                    // Calculate target camera position - move back and left
-                    const targetCameraPosition = new THREE.Vector3(
-                        slideDistance / 2,  // Move left
-                        camera.position.y,  // Maintain same height
-                        camera.position.z + buildingDepth // Step back
-                    );
-
-                    // Keep looking at the center point
-                    const lookAtPoint = new THREE.Vector3(
-                        slideDistance / 2,  // Look at midpoint between building and extended floor
-                        floorY + floorHeight / 2,
-                        0
-                    );
-
-                    function slideOutAnimation(currentTime) {
+                    function returnAnimation(currentTime) {
                         if (!startTime) startTime = currentTime;
                         const elapsed = currentTime - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-
-                        // Easing function for smoother animation
+                        const progress = Math.min(elapsed / returnDuration, 1);
                         const easing = easeInOutCubic(progress);
 
+                        // Animate floor
                         if (progress <= 0.5) {
-                            const slideProgress = progress * 2;
-                            floorGroup.position.x = slideDistance * slideProgress;
+                            const rotateProgress = 1 - (progress * 2);
+                            currentGroup.rotation.x = rotateProgress * Math.PI / 2;
                         }
-
                         if (progress > 0.5) {
-                            const rotateProgress = (progress - 0.5) * 2;
-                            floorGroup.rotation.x = rotateProgress * Math.PI / 2;
+                            const slideProgress = 1 - ((progress - 0.5) * 2);
+                            currentGroup.position.x = slideDistance * slideProgress;
                         }
 
-                        // Animate camera position with simple translation
-                        camera.position.lerp(targetCameraPosition, easing);
-                        camera.lookAt(lookAtPoint);
+                        // Camera animation - only if we're fully closing the floor view
+                        if (floorNumber === null) {
+                            camera.position.lerp(CAMERA_POSITIONS.ZOOMED_IN, easing);
+                            camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_IN);
+                            if (progress === 1) {
+                                isCameraZoomedOut = false;
+                            }
+                        }
 
                         if (progress < 1) {
-                            requestAnimationFrame(slideOutAnimation);
+                            requestAnimationFrame(returnAnimation);
                         } else {
-                            isAnimating = false;
+                            if (currentGroup.originalComponents) {
+                                currentGroup.originalComponents.forEach(comp => {
+                                    comp.visible = true;
+                                });
+                            }
+
+                            scene.remove(currentGroup);
+                            window.activeFloorGroup = null;
+
+                            if (floorNumber !== null) {
+                                setTimeout(() => {
+                                    isAnimating = false;
+                                    animateNewFloor(floorNumber);
+                                }, 50);
+                            } else {
+                                isAnimating = false;
+                            }
                         }
                     }
 
-                    requestAnimationFrame(slideOutAnimation);
+                    requestAnimationFrame(returnAnimation);
+                } else if (floorNumber !== null) {
+                    animateNewFloor(floorNumber);
+                }
+            }
+
+            function animateNewFloor(floorNumber) {
+                isAnimating = true;
+                const floorGroup = new THREE.Group();
+                const floorY = floorNumber * floorHeight;
+
+                // Helper function to check if an object belongs to this floor
+                const isInFloorRange = (position) => {
+                    return position.y >= floorY - wallThickness / 2 &&
+                        position.y <= floorY + floorHeight + wallThickness / 2;
+                };
+
+                // Collect and clone floor components
+                scene.children.forEach(child => {
+                    if (!child.isMesh && !child.isLine && !child.isLineSegments) return;
+
+                    if (isInFloorRange(child.position)) {
+                        const clone = child.clone(true);
+                        child.visible = false;
+                        clone.position.sub(new THREE.Vector3(0, floorY, 0));
+                        floorGroup.add(clone);
+
+                        if (child.children.length > 0) {
+                            child.children.forEach(childObj => {
+                                const childClone = childObj.clone(true);
+                                clone.add(childClone);
+                            });
+                        }
+                    }
+                });
+
+                floorGroup.position.y = floorY;
+                scene.add(floorGroup);
+                window.activeFloorGroup = floorGroup;
+
+                window.activeFloorGroup.originalComponents = scene.children.filter(child =>
+                    (child.isMesh || child.isLine || child.isLineSegments) &&
+                    isInFloorRange(child.position)
+                );
+
+                const slideDistance = buildingWidth * -1.5;
+                let startTime = null;
+                const duration = 1000;
+
+                function slideOutAnimation(currentTime) {
+                    if (!startTime) startTime = currentTime;
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easing = easeInOutCubic(progress);
+
+                    // Floor animation
+                    if (progress <= 0.5) {
+                        const slideProgress = progress * 2;
+                        floorGroup.position.x = slideDistance * slideProgress;
+                    }
+                    if (progress > 0.5) {
+                        const rotateProgress = (progress - 0.5) * 2;
+                        floorGroup.rotation.x = rotateProgress * Math.PI / 2;
+                    }
+
+                    // Camera animation - only if we're not already zoomed out
+                    if (!isCameraZoomedOut) {
+                        camera.position.lerp(CAMERA_POSITIONS.ZOOMED_OUT, easing);
+                        camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_OUT);
+                        if (progress === 1) {
+                            isCameraZoomedOut = true;
+                        }
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(slideOutAnimation);
+                    } else {
+                        isAnimating = false;
+                    }
                 }
 
-                // Easing function for smoother animation
-                function easeInOutCubic(t) {
-                    return t < 0.5
-                        ? 4 * t * t * t
-                        : 1 - Math.pow(-2 * t + 2, 3) / 2;
-                }
+                requestAnimationFrame(slideOutAnimation);
+            }
 
-            function createBuilding() {
-                const gapSize = 0.5;
-                const verticalGap = 0.3;
-                const sectionWidth = (buildingWidth - gapSize * 3) / 2;
-                const sectionDepth = (buildingDepth - gapSize * 3) / 2;
+            function easeInOutCubic(t) {
+                return t < 0.5
+                    ? 4 * t * t * t
+                    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+
+
+
+                function createBuilding() {
+                const verticalGap = 0.1;
                 const sectionHeight = floorHeight - (verticalGap * 2);
 
-
                 const edgeMaterial = new THREE.LineBasicMaterial({
-                color: 50630,
-                linewidth: 1,
-                linecap: "round",
-                linejoin: "round",
-                transparent: !0,
-                opacity: .5
-            })
+                    color: 50630,
+                    linewidth: 1,
+                    linecap: "round",
+                    linejoin: "round",
+                    transparent: true,
+                    opacity: 0.5
+                });
 
+                const wallMaterial = new THREE.MeshPhongMaterial({
+                    color: 50630,
+                    specular: 16777215,
+                    emissive: 0,
+                    shininess: 10,
+                    transparent: true,
+                    opacity: 0.2,
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
 
-                let quadrant_id = 0;
-                // Rest of the function remains exactly the same as before
                 for (let floor = 0; floor < totalFloors + 1; floor++) {
+                    // Add roof at the top floor
                     if (floor === totalFloors) {
                         const roofGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
                         const roofMesh = new THREE.Mesh(roofGeometry, materials.floor.clone());
@@ -677,121 +820,82 @@
                     floorMesh.isFloor = true;
                     scene.add(floorMesh);
 
-
-                    // Create the four quadrants with their own walls
-                    const quadrants = [
-                        { x: -buildingWidth/4 - gapSize/2, z: -buildingDepth/4 - gapSize/2 },  // Top-left
-                        { x: buildingWidth/4 + gapSize/2, z: -buildingDepth/4 - gapSize/2 },   // Top-right
-                        { x: -buildingWidth/4 - gapSize/2, z: buildingDepth/4 + gapSize/2 },   // Bottom-left
-                        { x: buildingWidth/4 + gapSize/2, z: buildingDepth/4 + gapSize/2 }     // Bottom-right
+                    // Create the four walls for each floor
+                    const walls = [
+                        // Left wall
+                        {
+                            geometry: new THREE.BoxGeometry(wallThickness, sectionHeight, buildingDepth),
+                            position: [-buildingWidth / 2, floor * floorHeight + floorHeight / 2, 0]
+                        },
+                        // Right wall
+                        {
+                            geometry: new THREE.BoxGeometry(wallThickness, sectionHeight, buildingDepth),
+                            position: [buildingWidth / 2, floor * floorHeight + floorHeight / 2, 0]
+                        },
+                        // Front wall
+                        {
+                            geometry: new THREE.BoxGeometry(buildingWidth, sectionHeight, wallThickness),
+                            position: [0, floor * floorHeight + floorHeight / 2, buildingDepth / 2]
+                        },
+                        // Back wall
+                        {
+                            geometry: new THREE.BoxGeometry(buildingWidth, sectionHeight, wallThickness),
+                            position: [0, floor * floorHeight + floorHeight / 2, -buildingDepth / 2]
+                        }
                     ];
 
-                    quadrants.forEach((quadrant, index) => {
-                        const quadrantID = `${floor}-${index}`;
-                        const quadrantMaterial = new THREE.MeshPhongMaterial({
-                    color: 50630,
-                    specular: 16777215,
-                    emissive: 0,
-                    shininess: 10,
-                    transparent: !0,
-                    opacity: .2,
-                    depthWrite: !1,
-                    side: THREE.DoubleSide
-                        });
+                    walls.forEach(wall => {
+                        const wallMesh = new THREE.Mesh(wall.geometry, wallMaterial);
+                        wallMesh.position.set(...wall.position);
+                        scene.add(wallMesh);
 
-                        const quadWalls = [
-                            // Left wall
-                            {
-                                geometry: new THREE.BoxGeometry(wallThickness, sectionHeight, sectionDepth),
-                                position: [quadrant.x - sectionWidth / 2, floor * floorHeight + floorHeight / 2, quadrant.z]
-                            },
-                            // Right wall
-                            {
-                                geometry: new THREE.BoxGeometry(wallThickness, sectionHeight, sectionDepth),
-                                position: [quadrant.x + sectionWidth / 2, floor * floorHeight + floorHeight / 2, quadrant.z]
-                            },
-                            // Front wall
-                            {
-                                geometry: new THREE.BoxGeometry(sectionWidth, sectionHeight, wallThickness),
-                                position: [quadrant.x, floor * floorHeight + floorHeight / 2, quadrant.z + sectionDepth / 2]
-                            },
-                            // Back wall
-                            {
-                                geometry: new THREE.BoxGeometry(sectionWidth, sectionHeight, wallThickness),
-                                position: [quadrant.x, floor * floorHeight + floorHeight / 2, quadrant.z - sectionDepth / 2]
-                            },
-                            // Top
-                            {
-                                geometry: new THREE.BoxGeometry(sectionWidth, wallThickness, sectionDepth),
-                                position: [quadrant.x, floor * floorHeight + verticalGap + sectionHeight, quadrant.z]
-                            },
-                            // Bottom
-                            {
-                                geometry: new THREE.BoxGeometry(sectionWidth, wallThickness, sectionDepth),
-                                position: [quadrant.x, floor * floorHeight + verticalGap, quadrant.z]
-                            }
-                        ];
+                        // Add edges
+                        const edges = new THREE.EdgesGeometry(wallMesh.geometry);
+                        const edgeMesh = new THREE.LineSegments(edges, edgeMaterial);
+                        edgeMesh.position.copy(wallMesh.position);
+                        scene.add(edgeMesh);
 
-                        quadWalls.forEach(wall => {
-                            const wallMesh = new THREE.Mesh(wall.geometry, quadrantMaterial);
+                        // Add vertical lines
+                        if (wall.geometry.parameters.height > wallThickness) {
+                            const numLines = 16; // Increased number of lines for fuller appearance
+                            const wallHeight = sectionHeight;
+                            const wallWidth = wall.geometry.parameters.width;
+                            const step = wallWidth / (numLines + 1);
 
-                            // Add simple identifier properties
-                            wallMesh.quadrantId = quadrantID;
-                            wallMesh.isQuadrant = true;
-                            wallMesh.position.set(...wall.position);
+                            for (let i = 1; i <= numLines; i++) {
+                                const offset = -wallWidth / 2 + i * step;
 
-                            wallMesh.userData.quadrantID = quadrantID;
+                                let lineStart, lineEnd;
 
-                            scene.add(wallMesh);
-
-                            const edges = new THREE.EdgesGeometry(wallMesh.geometry);
-                            const edgeMesh = new THREE.LineSegments(edges, edgeMaterial);
-                            edgeMesh.position.copy(wallMesh.position);
-                            scene.add(edgeMesh);
-
-
-                            // Add vertical lines along the x/z-axis, skipping top and bottom walls
-                            if (wall.geometry.parameters.height && wall.geometry.parameters.height > wallThickness) { // Not top or bottom walls
-                                const numLines = 8; // Number of vertical lines
-                                const wallHeight = sectionHeight;
-                                const wallWidth = wall.geometry.parameters.width || sectionWidth;
-                                const step = wallWidth / (numLines + 1); // Spacing between lines
-
-                                for (let i = 1; i <= numLines; i++) {
-                                    const offset = -wallWidth / 2 + i * step;
-
-                                    let lineStart, lineEnd;
-
-                                    if (wall.geometry.parameters.width) { // Vertical wall (e.g., front/back walls)
-                                        lineStart = new THREE.Vector3(
-                                            offset,
-                                            -wallHeight / 2,
-                                            0
-                                        );
-                                        lineEnd = new THREE.Vector3(
-                                            offset,
-                                            wallHeight / 2,
-                                            0
-                                        );
-                                    } else { // Horizontal wall (e.g., left/right walls)
-                                        lineStart = new THREE.Vector3(
-                                            0,
-                                            -wallHeight / 2,
-                                            offset
-                                        );
-                                        lineEnd = new THREE.Vector3(
-                                            0,
-                                            wallHeight / 2,
-                                            offset
-                                        );
-                                    }
-
-                                    const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
-                                    const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
-                                    wallMesh.add(verticalLine); // Add the line as a child of the wall mesh
+                                if (wall.geometry.parameters.width === buildingWidth) { // Front/back walls
+                                    lineStart = new THREE.Vector3(
+                                        offset,
+                                        -wallHeight / 2,
+                                        0
+                                    );
+                                    lineEnd = new THREE.Vector3(
+                                        offset,
+                                        wallHeight / 2,
+                                        0
+                                    );
+                                } else { // Left/right walls
+                                    lineStart = new THREE.Vector3(
+                                        0,
+                                        -wallHeight / 2,
+                                        offset
+                                    );
+                                    lineEnd = new THREE.Vector3(
+                                        0,
+                                        wallHeight / 2,
+                                        offset
+                                    );
                                 }
+
+                                const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
+                                const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
+                                wallMesh.add(verticalLine);
                             }
-                        });
+                        }
                     });
 
                     // Create floor label
@@ -802,7 +906,7 @@
                         new THREE.BoxGeometry(4, floorHeight, 4),
                         materials.stair
                     );
-                    stairShaft.position.set(buildingWidth/2 - 1.5, floor * floorHeight + floorHeight/2, 0);
+                    stairShaft.position.set(buildingWidth / 2 - 1.5, floor * floorHeight + floorHeight / 2, 0);
                     scene.add(stairShaft);
 
                     // Add stairs
@@ -814,21 +918,17 @@
                         materials.stairStep
                     );
                     stair1.position.set(
-                        buildingWidth/2 - 1.5,
-                        floor * floorHeight + floorHeight/2,
+                        buildingWidth / 2 - 1.5,
+                        floor * floorHeight + floorHeight / 2,
                         1
                     );
-                    stair1.rotation.z = (floor % 2 === 0) ? Math.PI/5 : -Math.PI/5;
+                    stair1.rotation.z = (floor % 2 === 0) ? Math.PI / 5 : -Math.PI / 5;
                     scene.add(stair1);
                 }
 
                 // Add lighting
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
                 scene.add(ambientLight);
-
-                // const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-                // directionalLight.position.set(10, 10, 10);
-                // scene.add(directionalLight);
 
                 if (isElevatorsVisible) {
                     createElevators();
@@ -879,7 +979,6 @@
 
                 return { x, y };
             }
-            
             function onMouseClick(event) {
                 event.preventDefault();
 
@@ -891,37 +990,20 @@
 
                 raycaster.setFromCamera(mouse, camera);
 
-                // If we have an active floor group, we need to check its children specifically
+                // If we have an active floor group
                 if (window.activeFloorGroup) {
                     // Get intersections with the active floor group's children
                     const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
 
-                    // Filter to only get quadrant intersections
-                    const quadrantIntersects = floorIntersects.filter(intersect => intersect.object.quadrantId);
+                    if (floorIntersects.length > 0) {
+                        const clickedObject = floorIntersects[0].object;
+                        const floorNumber = Math.round(window.activeFloorGroup.position.y / floorHeight);
 
-                    console.log("Quadrant intersections:",
-                        quadrantIntersects.map(intersect => ({
-                            quadrantId: intersect.object.quadrantId,
-                            distance: intersect.distance,
-                            point: intersect.point
-                        }))
-                    );
-
-                    if (quadrantIntersects.length > 0) {
-                        const clickedObject = quadrantIntersects[0].object;
-                        console.log("Clicked quadrant:", clickedObject.quadrantId);
-
-                        const quadrantParts = clickedObject.quadrantId.split('-');
-                        const floorNumber = parseInt(quadrantParts[0]);
-                        const quadrantIndex = parseInt(quadrantParts[1]);
-
-                        createQuadrantMenu(
+                        createFloorMenu(
                             event.clientX,
                             event.clientY,
                             clickedObject,
-                            floorNumber,
-                            quadrantIndex % 2 ? 1 : -1,  // quadrantX
-                            quadrantIndex < 2 ? -1 : 1   // quadrantZ
+                            floorNumber
                         );
                         return;
                     }
@@ -931,21 +1013,35 @@
                 const sceneIntersects = raycaster.intersectObjects(scene.children, true);
 
                 if (!window.activeFloorGroup) {
-                    const floorMesh = sceneIntersects.find(intersect => intersect.object.isFloor);
-                    if (floorMesh) {
-                        const floorNumber = Math.round(floorMesh.object.position.y / floorHeight);
+                    // Try to find any floor component (floor, wall, or other part)
+                    const floorComponent = sceneIntersects.find(intersect => {
+                        // Get the Y position of the intersected object
+                        const objectY = intersect.object.position.y;
+                        // Check if it's a floor or within a floor's height range
+                        return intersect.object.isFloor ||
+                            (objectY % floorHeight < floorHeight + wallThickness &&
+                                objectY % floorHeight > -wallThickness);
+                    });
+
+                    if (floorComponent) {
+                        const floorNumber = Math.round(floorComponent.object.position.y / floorHeight);
                         createAnimatedFloorView(floorNumber);
                     }
                 } else {
                     // Check if we clicked another floor while one is active
-                    const floorMesh = sceneIntersects.find(intersect =>
-                        intersect.object.isFloor &&
-                        Math.abs(intersect.object.position.y / floorHeight -
-                            window.activeFloorGroup.position.y / floorHeight) > 0.1
-                    );
+                    const floorComponent = sceneIntersects.find(intersect => {
+                        const objectY = intersect.object.position.y;
+                        const currentFloorY = window.activeFloorGroup.position.y;
 
-                    if (floorMesh) {
-                        const floorNumber = Math.round(floorMesh.object.position.y / floorHeight);
+                        return (intersect.object.isFloor ||
+                            (objectY % floorHeight < floorHeight + wallThickness &&
+                                objectY % floorHeight > -wallThickness)) &&
+                            Math.abs(Math.round(objectY / floorHeight) -
+                                Math.round(currentFloorY / floorHeight)) > 0.1;
+                    });
+
+                    if (floorComponent) {
+                        const floorNumber = Math.round(floorComponent.object.position.y / floorHeight);
                         createAnimatedFloorView(floorNumber);
                     }
                     else if (sceneIntersects.length === 0) {
@@ -954,7 +1050,35 @@
                     }
                 }
             }
-            
+
+            // New simplified menu for floor components
+            function createFloorMenu(x, y, component, floorNumber) {
+                // Remove existing menu if any
+                if (window.activeMenu) {
+                    document.body.removeChild(window.activeMenu);
+                    window.activeMenu = null;
+                }
+
+                const menu = document.createElement('div');
+                menu.className = 'quadrant-menu';
+                menu.style.position = 'fixed';
+                menu.style.left = `${x}px`;
+                menu.style.top = `${y}px`;
+
+                const showCamera = document.createElement('div');
+                showCamera.className = 'quadrant-menu-item';
+                showCamera.textContent = 'View Camera';
+
+                showCamera.addEventListener('click', () => {
+                    const cameraUrl = `https://player.castr.com/live_1deb88e0b56e11ef8f0e3fcb84ef4d27`;
+                    replaceWithIframe(cameraUrl);
+                    showCameraModal();
+                });
+
+                menu.appendChild(showCamera);
+                document.body.appendChild(menu);
+                window.activeMenu = menu;
+            }
             function createQuadrantMenu(x, y, quadrant, floorNumber, quadrantX, quadrantZ) {
                 console.log("Creating menu at:", x, y);
                 console.log("Quadrant:", quadrant);

@@ -40,10 +40,10 @@ interface ZonesViewProps {
   onUpdateZone: (floorId: string, zoneId: string, updates: Partial<Zone>) => void;
 }
 
-function ZoneFloorItem({ 
-  floor, 
-    floors,
-  isExpanded, 
+function ZoneFloorItem({
+  floor,
+  floors,
+  isExpanded,
   onToggleExpand,
   onAddZone,
   onRemoveZone,
@@ -61,10 +61,33 @@ function ZoneFloorItem({
 
   const hasCameras = (floorCameras[floor.id] || []).length > 0;
 
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  // Function to communicate with the iframe
+  const notifyIframeOfFloorChange = (floorNumber: number, isExpanded: boolean) => {
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'FLOOR_TOGGLE',
+        floorNumber: floorNumber,
+        action: isExpanded ? 'expand' : 'collapse'
+      }, '*');
+    }
+  };
+
+  // Modified handleToggle function
+  const handleToggle = (id: string) => {
+    // Calculate floor number based on floor.level
+    const floorNumber = floor.isBase ? 0 : floor.level;
+
+    // First notify the iframe
+    notifyIframeOfFloorChange(floorNumber, !isExpanded);
+
+    // Then call the original onToggleExpand
+    onToggleExpand(id);
   };
 
   return (
@@ -86,29 +109,28 @@ function ZoneFloorItem({
               {floor.zones.length} Zones
             </span>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => onAddZone(floor.id)}
               className="flex items-center gap-1 text-cyan-500 hover:text-cyan-600 px-3 py-2"
             >
               <Plus size={18} />
               Add Zone
             </button>
-            <button 
-            onClick={() => setIsCameraModalOpen(true)}
-            disabled={!hasCameras}
-            className={`flex items-center gap-1 px-3 py-2 ${
-            hasCameras 
-                ? 'text-cyan-500 hover:text-cyan-600 cursor-pointer' 
-                : 'text-gray-300 cursor-not-allowed'
-            }`}
+            <button
+              onClick={() => setIsCameraModalOpen(true)}
+              disabled={!hasCameras}
+              className={`flex items-center gap-1 px-3 py-2 ${hasCameras
+                  ? 'text-cyan-500 hover:text-cyan-600 cursor-pointer'
+                  : 'text-gray-300 cursor-not-allowed'
+                }`}
             >
-            <Camera size={18} />
-            View Cameras
+              <Camera size={18} />
+              View Cameras
             </button>
-            <button 
-              onClick={() => onToggleExpand(floor.id)}
+            <button
+              onClick={() => handleToggle(floor.id)}
               className="flex items-center gap-1 text-gray-600 hover:text-gray-800 px-3 py-2"
             >
               {isExpanded ? "Hide zones" : "View zones"}
@@ -116,14 +138,14 @@ function ZoneFloorItem({
             </button>
           </div>
         </div>
-        
+
         {isExpanded && (
           <>
             <div className="h-px bg-gray-100 mx-4" />
             <div className="p-4">
               {floor.zones.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
-                  No zones defined. Click `&quot;`Add Zone`&quot;` to create one.
+                  No zones defined. Click Add Zone to create one.
                 </div>
               ) : (
                 <div className="bg-gray-50 rounded-lg p-4">
@@ -184,12 +206,12 @@ function ZoneFloorItem({
       </div>
       {isCameraModalOpen && (
         <CameraModal
-        isOpen={isCameraModalOpen}
-        onClose={() => setIsCameraModalOpen(false)}
-        floor={floor}
-        floors={floors}  
+          isOpen={isCameraModalOpen}
+          onClose={() => setIsCameraModalOpen(false)}
+          floor={floor}
+          floors={floors}
         />
-        )}
+      )}
     </>
   );
 }
