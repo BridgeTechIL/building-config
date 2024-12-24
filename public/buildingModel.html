@@ -296,12 +296,12 @@
                     ctx.fill();
                     ctx.fillRect(20, 35, 24, 25); // Body
                 } else if (type === 'equipment') {
-                    // Draw equipment icon
                     ctx.fillStyle = '#F5A623';
-                    ctx.fillRect(16, 16, 32, 32);
+                    ctx.beginPath();
+                    ctx.arc(32, 32, 16, 0, Math.PI * 2);
+                    ctx.fill();
                 } else if (type === 'sensors') {
-                    // Draw sensor icon
-                    ctx.fillStyle = '#7ED321';
+                    ctx.fillStyle = '#d32150';
                     ctx.beginPath();
                     ctx.arc(32, 32, 16, 0, Math.PI * 2);
                     ctx.fill();
