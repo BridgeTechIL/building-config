@@ -229,7 +229,7 @@ export default function Home() {
 
           // Ensure iframe exists and its contentWindow is accessible
           if (iframe && iframe.contentWindow) {
-            const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void };
+            const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void };
             const iframeDocument = contentWindow.document;
 
             // Safely attempt to access the DOM element and call the function
@@ -240,6 +240,14 @@ export default function Home() {
 
             if (typeof contentWindow.updateFloors === 'function') {
               contentWindow.updateFloors();
+            }
+            if (typeof contentWindow.showZones === 'function') {
+              const zones = [
+                {name: 'normal', is_wifi: false, is_dangerous: false, location:{floor_physical: 4, xy: [70,25], is_exact: true}},
+                {name: 'danger', is_wifi: true, is_dangerous: true, location:{floor_physical: 7, xy: [50,70], is_exact: true}},
+                {name: 'wifi', is_wifi: true, is_dangerous: false, location:{floor_physical: 2, xy: [35,50], is_exact: true}},
+              ]
+              contentWindow.showZones(zones);
             }
           }
         }}

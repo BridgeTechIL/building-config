@@ -171,6 +171,7 @@
             let ground_floor = 0;
             let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
             let activeItems = [];
+            let currentZones = [];
             let itemTitle = null;
             let titleSprite = null;
             window.activeMenu = null;
@@ -228,10 +229,11 @@
                          scene.add(sprite);
                          scene.add(label);
                          activeItems.push(sprite, label);
+
                      });
 
-                     // Reset camera to show all items
-                     resetCameraToShowItems();
+                     // // Reset camera to show all items
+                     // resetCameraToShowItems();
                  }
             }, false);
 
@@ -254,6 +256,31 @@
                 return new THREE.Sprite(spriteMaterial);
             }
 
+            function addZone(zone) {
+                const { name, is_wifi, is_dangerous, location } = zone;
+                const { floor_physical, xy, is_exact } = location;
+                const zoneGeometry = new THREE.BoxGeometry(buildingWidth/2, 0.3, buildingDepth/2);
+                const zoneMaterial = new THREE.MeshBasicMaterial({
+                    color: is_dangerous? 0xff0000 : is_wifi? 0xFFFF00 : 0x0000FF,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const zoneMesh = new THREE.Mesh(zoneGeometry, zoneMaterial);
+                const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
+                let finalX = worldCoords.x;
+                let finalZ = worldCoords.z;
+
+                if (!is_exact) {
+                    finalX = addRandomization(finalX, 2);
+                    finalZ = addRandomization(finalZ, 2);
+                }
+
+                const y = floor_physical * floorHeight + (floorHeight / 2);
+                zoneMesh.position.set(finalX, y, finalZ);
+                scene.add(zoneMesh);
+                currentZones.push(zoneMesh);
+            }
+
             // Add this function to create item sprites
             function createItemSprite(type) {
                 const canvas = document.createElement('canvas');
@@ -269,12 +296,12 @@
                     ctx.fill();
                     ctx.fillRect(20, 35, 24, 25); // Body
                 } else if (type === 'equipment') {
-                    // Draw equipment icon
                     ctx.fillStyle = '#F5A623';
-                    ctx.fillRect(16, 16, 32, 32);
+                    ctx.beginPath();
+                    ctx.arc(32, 32, 16, 0, Math.PI * 2);
+                    ctx.fill();
                 } else if (type === 'sensors') {
-                    // Draw sensor icon
-                    ctx.fillStyle = '#7ED321';
+                    ctx.fillStyle = '#d32150';
                     ctx.beginPath();
                     ctx.arc(32, 32, 16, 0, Math.PI * 2);
                     ctx.fill();
@@ -704,7 +731,7 @@
 
                 // Collect and clone floor components
                 scene.children.forEach(child => {
-                    if (!child.isMesh && !child.isLine && !child.isLineSegments) return;
+                    if (!child.isMesh && !child.isLine && !child.isLineSegments && !child.isSprite && !child.isCanvasTexture) return;
 
                     if (isInFloorRange(child.position)) {
                         const clone = child.clone(true);
@@ -726,7 +753,7 @@
                 window.activeFloorGroup = floorGroup;
 
                 window.activeFloorGroup.originalComponents = scene.children.filter(child =>
-                    (child.isMesh || child.isLine || child.isLineSegments) &&
+                    (child.isMesh || child.isLine || child.isLineSegments || child.isSprite || child.isCanvasTexture) &&
                     isInFloorRange(child.position)
                 );
 
@@ -1371,6 +1398,16 @@
                 camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                 camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                 document.getElementById('lobbyFloorModal').style.display = 'none';
+            }
+
+            window.showZones = function(zones) {
+                currentZones.forEach(item => {
+                    scene.remove(item);
+                });
+                currentZones = [];
+                zones.forEach(zone => {
+                    addZone(zone)
+                })
             }
 
             function updateCameraMovement() {
