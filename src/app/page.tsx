@@ -245,9 +245,42 @@ export default function Home() {
                   // Show zones
             if (typeof contentWindow.showZones === 'function') {
               const zones = [
-                {name: 'normal', is_wifi: false, is_dangerous: false, location:{floor_physical: 4, xy: [70,25], is_exact: true}},
-                {name: 'danger', is_wifi: true, is_dangerous: true, location:{floor_physical: 7, xy: [50,70], is_exact: true}},
-                {name: 'wifi', is_wifi: true, is_dangerous: false, location:{floor_physical: 2, xy: [35,50], is_exact: true}},
+                {name: 'איזור לובי', is_wifi: false, is_dangerous: false, location:{floor_physical: 4, xy: [50,25], is_exact: true}},
+                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 5, xy: [50, 25], is_exact: true } },
+                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 6, xy: [50, 25], is_exact: true } },
+                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 7, xy: [50, 25], is_exact: true } },
+                { name: 'דירה 1', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 25], is_exact: true } },
+                { name: 'דירה 2', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 75], is_exact: true } },
+                { name: 'דירה 3', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 25], is_exact: true } },
+                { name: 'דירה 4', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 75], is_exact: true } },
+
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 25], is_exact: true } },
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 75], is_exact: true } },
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 25], is_exact: true } },
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 75], is_exact: true } },
+
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 23, xy: [75, 75], is_exact: true } },
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 22, xy: [75, 75], is_exact: true } },
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 21, xy: [75, 75], is_exact: true } },
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 20, xy: [75, 75], is_exact: true } },
+
+                {name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location:{floor_physical: 0, xy: [25,25], is_exact: true}},
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 25], is_exact: true } },
+                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 25], is_exact: true } },
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 25], is_exact: true } },
+                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 25], is_exact: true } },
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 25], is_exact: true } },
+                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 25], is_exact: true } },
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 25], is_exact: true } },
+
               ]
               contentWindow.showZones(zones);
             }
