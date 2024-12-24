@@ -139,19 +139,23 @@
         {
             "imports": {
                 "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "OBJLoader": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js",
+                "MTLLoader": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/MTLLoader.js"
             }
         }
     </script>
     <script type="module">
         import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
+        import {OBJLoader} from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js';
+        import {MTLLoader} from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/MTLLoader.js';
         import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
         // Make THREE available globally for your existing code
         window.THREE = THREE;
 
         window.onload = function() {
-            let scene, camera, renderer, controls;
+            let scene, camera, renderer, controls, raycaster, mouse;
             window.activeFloorGroup = null;
             let isAnimating = false;
             let totalFloors = 16;
@@ -395,6 +399,8 @@
                 scene = new THREE.Scene();
                 scene.background  = new THREE.Color(0xffffff);
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                mouse = new THREE.Vector2();
+                raycaster = new THREE.Raycaster();
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 document.body.appendChild(renderer.domElement);
@@ -416,6 +422,7 @@
 
                 camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                 camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                raycaster.setFromCamera(mouse, camera);
                 
                 
                 animate();
@@ -684,6 +691,7 @@
                         if (floorNumber === null) {
                             camera.position.lerp(CAMERA_POSITIONS.ZOOMED_IN, easing);
                             camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_IN);
+                            raycaster.setFromCamera(mouse, camera);
                             if (progress === 1) {
                                 isCameraZoomedOut = false;
                             }
@@ -731,7 +739,7 @@
 
                 // Collect and clone floor components
                 scene.children.forEach(child => {
-                    if (!child.isMesh && !child.isLine && !child.isLineSegments && !child.isSprite && !child.isCanvasTexture) return;
+                    // if (!child.isMesh && !child.isLine && !child.isLineSegments && !child.isSprite && !child.isCanvasTexture) return;
 
                     if (isInFloorRange(child.position)) {
                         const clone = child.clone(true);
@@ -753,7 +761,6 @@
                 window.activeFloorGroup = floorGroup;
 
                 window.activeFloorGroup.originalComponents = scene.children.filter(child =>
-                    (child.isMesh || child.isLine || child.isLineSegments || child.isSprite || child.isCanvasTexture) &&
                     isInFloorRange(child.position)
                 );
 
@@ -781,6 +788,7 @@
                     if (!isCameraZoomedOut) {
                         camera.position.lerp(CAMERA_POSITIONS.ZOOMED_OUT, easing);
                         camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_OUT);
+                        raycaster.setFromCamera(mouse, camera);
                         if (progress === 1) {
                             isCameraZoomedOut = true;
                         }
@@ -1009,9 +1017,6 @@
             function onMouseClick(event) {
                 event.preventDefault();
 
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-
                 mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -1019,7 +1024,17 @@
 
                 // If we have an active floor group
                 if (window.activeFloorGroup) {
-                    // Get intersections with the active floor group's children
+                    const allIntersects = raycaster.intersectObjects(scene.children, true);
+                    if (allIntersects.length > 0) {
+                        console.log(allIntersects)
+                        const clickedObject = allIntersects[0].object;
+                        if (clickedObject.userData.streamUrl) {
+                            const { name, streamUrl } = clickedObject.userData;
+                            replaceWithIframe(streamUrl);
+                            showCameraModal();
+                            return;
+                        }
+                    }
                     const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
 
                     if (floorIntersects.length > 0) {
@@ -1074,6 +1089,10 @@
                     else if (sceneIntersects.length === 0) {
                         // We clicked on empty space
                         resetFloorPosition();
+                    }
+                    if (window.activeMenu) {
+                        document.body.removeChild(window.activeMenu);
+                        window.activeMenu = null;
                     }
                 }
             }
@@ -1187,6 +1206,11 @@
             function showCameraModal() {
                 const modal = document.getElementById('floorInfoModal');
                 modal.style.display = 'block';
+                if (window.activeMenu) {
+                    document.body.removeChild(window.activeMenu);
+                    window.activeMenu = null;
+
+                }
             }
 
             function showFloorInfo(floorNumber) {
@@ -1262,6 +1286,10 @@
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && window.activeFloorGroup) {
                     resetFloorPosition();
+                    if (window.activeMenu) {
+                        document.body.removeChild(window.activeMenu);
+                        window.activeMenu = null;
+                    }
                 }
             });
 
@@ -1382,6 +1410,7 @@
                     if (isWorkersVisible) { toggleWorkers(); }
                     camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                     camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                    raycaster.setFromCamera(mouse, camera);
                 }
                 document.getElementById('floorModal').style.display = 'none';
             }
@@ -1397,6 +1426,7 @@
                 if (isWorkersVisible) { toggleWorkers(); }
                 camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
                 camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                raycaster.setFromCamera(mouse, camera);
                 document.getElementById('lobbyFloorModal').style.display = 'none';
             }
 
@@ -1408,6 +1438,55 @@
                 zones.forEach(zone => {
                     addZone(zone)
                 })
+            }
+
+            window.addCameras = function(cams){
+                    const objLoader = new OBJLoader();
+                    objLoader.load(
+                        'models/cam/cam.obj',
+                        (camModel) => {
+                            camModel.scale.set(0.1, 0.1, 0.1);
+                            cams.forEach(cam => {
+                                const camModelClone = camModel.clone();
+                                const {name, streamUrl, location} = cam;
+                                const { floor_physical, xy, is_exact } = location;
+                                const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
+                                let finalX = worldCoords.x;
+                                let finalZ = worldCoords.z;
+
+                                if (!is_exact) {
+                                    finalX = addRandomization(finalX, 2);
+                                    finalZ = addRandomization(finalZ, 2);
+                                }
+
+                                const y = floor_physical * floorHeight + 1;
+                                camModelClone.position.set(finalX, y, finalZ);
+                                camModelClone.traverse((child) => {
+                                    if (child instanceof THREE.Mesh && child.geometry) {
+                                        const camGeometry = child.geometry;
+                                        camGeometry.computeBoundingBox();
+                                        camGeometry.boundingBox.expandByScalar(0.1)
+                                        child.material = new THREE.MeshPhongMaterial({
+                                            color: 0x000000,
+                                            specular: 0x111111,
+                                            shininess: 200
+                                        });
+                                        child.userData = { name, streamUrl };
+
+                                    }
+                                });
+                                scene.add(camModelClone);
+                            });
+
+                        },
+                        (xhr) => {
+                            console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
+                        },
+                        (error) => {
+                            console.error('An error occurred while loading the OBJ file:', error);
+                        }
+                    );
+
             }
 
             function updateCameraMovement() {
