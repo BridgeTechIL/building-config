@@ -1470,7 +1470,7 @@
                     objLoader.load(
                         'models/cam/cam.obj',
                         (camModel) => {
-                            camModel.scale.set(0.05, 0.05, 0.05);
+                            camModel.scale.set(0.1, 0.1, 0.1);
                             cams.forEach(cam => {
                                 const camModelClone = camModel.clone();
                                 const {name, streamUrl, location} = cam;
