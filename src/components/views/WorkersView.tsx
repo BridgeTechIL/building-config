@@ -63,85 +63,45 @@ const WorkersView = () => {
       }, '*');
     }
   };
+  
   const handleLocateWorker = (tagId: string, name: string) => {
-    // Implement logic to locate the worker with the given tagId
-    console.log(`Locating worker with tag ID: ${tagId}`);
-    name = name? name: tagId;
-    const workers = [
-      {
-        tag_id: tagId,
-        name: name,
-        location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
-          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-          is_exact: true
-        }
-      }
-    ];
-    showWorkersIframe(name, workers);
-  };
-
-  const handleLocateGroup = (GroupName: string) => {
-    // Implement logic to locate all workers in the group with the given groupId
-    console.log(`Locating all workers in group with ID: ${GroupName}`);
-    const workers = [
-      {
-        tag_id: "123",
-        name: "John Doe",
-        location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
-          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-          is_exact: true
-        }
-      },
-      {
-        tag_id: "456",
-        name: "Jane Doe",
-        location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
-          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-          is_exact: true
-        }
-      },
-      {
-          tag_id: "789",
-          name: "Alice Doe",
+    const worker = workers.find(w => w.tagId === tagId);
+    if (worker) {
+      const workerLocation = [
+        {
+          tag_id: worker.tagId,
+          name: worker.name,
           location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
-          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-          is_exact: true
-          }
-      },
-      {
-          tag_id: "101",
-          name: "Bob Doe",
-          location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
-          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-          is_exact: true
-          }
-      },
-      {
-          tag_id: "202",
-          name: "Eve Doe",
-          location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
-          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-          is_exact: true
-          }
-      },
-      {
-            tag_id: "303",
-            name: "Mallory Doe",
-            location: {
             floor_physical: Math.floor(Math.random() * 15) + 1,
             xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
             is_exact: true
-            }
-      }
-    ];
-    showWorkersIframe(GroupName, workers);
+          }
+        }
+      ];
+      showWorkersIframe(worker.name, workerLocation);
+    }
   };
+
+  const handleLocateGroup = (groupName: string) => {
+    const group = workerGroups.find(g => g.name === groupName);
+    if (group) {
+      // Find all workers in this group
+      const groupWorkers = workers
+        .filter(w => w.groups.includes(group.id))
+        .map(worker => ({
+          tag_id: worker.tagId,
+          name: worker.name,
+          location: {
+            floor_physical: Math.floor(Math.random() * 15) + 1,
+            xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+            is_exact: true
+          }
+        }));
+
+      showWorkersIframe(groupName, groupWorkers);
+    }
+  };
+
 
   const renderPeopleView = () => (
     <div className="bg-gray-50 rounded-lg p-4">

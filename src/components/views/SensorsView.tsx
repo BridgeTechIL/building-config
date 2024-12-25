@@ -18,13 +18,48 @@ const SensorsView = () => {
 
   const [expandedTypeId, setExpandedTypeId] = useState<string | null>(null);
 
-  const handleLocateType = (typeId: string) => {
-    console.log(`Locating all sensors of type: ${typeId}`);
+  const handleLocateSensor = (tagId: string, name: string) => {
+    const sensor = {
+      tag_id: tagId,
+      name: name,
+      location: {
+        floor_physical: Math.floor(Math.random() * 15) + 1,
+        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+        is_exact: true
+      }
+    };
+
+    showSensorsIframe(name, [sensor]);
   };
-    
-  const handleLocateSensor = (tagId: string) => {
-    // Implement logic to locate the sensor with the given tagId
-    console.log(`Locating sensor with tag ID: ${tagId}`);
+
+  const showSensorsIframe = (title: string, sensors: Array<object>) => {
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'SHOW_ITEMS',
+        data: {
+          type: 'sensors',
+          title: title,
+          items: sensors
+        },
+      }, '*');
+    }
+  };
+
+  const handleLocateType = (typeId: string, typeName: string) => {
+    const typeSensors = sensors
+      .filter(sensor => sensor.type === typeId)
+      .map(sensor => ({
+        tag_id: sensor.tagId,
+        name: sensor.name,
+        location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+        }
+      }));
+
+    showSensorsIframe(typeName, typeSensors);
   };
 
   const renderSensorsView = () => (
@@ -54,7 +89,7 @@ const SensorsView = () => {
             </div>
             <div className="col-span-1 text-right">
               <button
-                onClick={() => handleLocateSensor(sensor.tagId)}
+                onClick={() => handleLocateSensor(sensor.tagId, sensor.name)}
                 className="text-gray-400 hover:text-cyan-500"
               >
                 <MapPin size={18} />
@@ -86,7 +121,8 @@ const SensorsView = () => {
               </div>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => handleLocateType(type.id)}
+
+                  onClick={() => handleLocateType(type.id, type.name)}
                   className="text-gray-400 hover:text-cyan-500 flex items-center"
                 >
                   <MapPin size={18} /> Show Locations

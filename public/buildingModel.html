@@ -178,6 +178,9 @@
             let itemTitle = null;
             let titleSprite = null;
             window.activeMenu = null;
+            let blinkingItems = new Set();
+            let lastBlinkTime = 0;
+            const blinkInterval = 500;
             let loaded_models = {
                 ppl: { path: 'models/safety_helmet.glb', obj: null }
             };
@@ -284,7 +287,6 @@
                 currentZones.push(zoneMesh);
             }
 
-            // Add this function to create item sprites
             function createItemSprite(type, x, y, z) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 64;
@@ -323,22 +325,60 @@
                         scene.add(model);
                         activeItems.push(model);
                     }
-
                 } else if (type === 'equipment') {
-                    ctx.fillStyle = '#F5A623';
-                    ctx.beginPath();
-                    ctx.arc(32, 32, 16, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Create a larger, brighter sphere for equipment
+                    const geometry = new THREE.SphereGeometry(1, 32, 32);
+                    const material = new THREE.MeshPhongMaterial({
+                        color: 0xff0000,  // Bright red
+                        specular: 0xffffff,
+                        shininess: 100,
+                        transparent: true,
+                        opacity: 1
+                    });
+                    const sphere = new THREE.Mesh(geometry, material);
+                    sphere.position.set(x, y, z);
+                    scene.add(sphere);
+                    activeItems.push(sphere);
+                    blinkingItems.add(sphere);
+
+                    // Add a glowing effect
+                    const glowGeometry = new THREE.SphereGeometry(1.2, 32, 32);
+                    const glowMaterial = new THREE.MeshPhongMaterial({
+                        color: 0xff0000,
+                        transparent: true,
+                        opacity: 0.3
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    sphere.add(glow);
+
                 } else if (type === 'sensors') {
-                    ctx.fillStyle = '#d32150';
-                    ctx.beginPath();
-                    ctx.arc(32, 32, 16, 0, Math.PI * 2);
-                    ctx.fill();
+                    // Create a brighter, more visible sphere for sensors
+                    const geometry = new THREE.SphereGeometry(0.8, 32, 32);
+                    const material = new THREE.MeshPhongMaterial({
+                        color: 0xff3333,  // Bright red
+                        specular: 0xffffff,
+                        shininess: 100,
+                        transparent: true,
+                        opacity: 1
+                    });
+                    const sphere = new THREE.Mesh(geometry, material);
+                    sphere.position.set(x, y, z);
+                    scene.add(sphere);
+                    activeItems.push(sphere);
+                    blinkingItems.add(sphere);
+
+                    // Add a glowing effect
+                    const glowGeometry = new THREE.SphereGeometry(1, 32, 32);
+                    const glowMaterial = new THREE.MeshPhongMaterial({
+                        color: 0xff3333,
+                        transparent: true,
+                        opacity: 0.3
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    sphere.add(glow);
                 }
 
-                const texture = new THREE.CanvasTexture(canvas);
-                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-                return new THREE.Sprite(spriteMaterial);
+                return null; // If no sprite was created (e.g., when using 3D models)
             }
 
             // Add this function to convert normalized coordinates to world coordinates
@@ -1238,6 +1278,19 @@
                 }
             }
 
+            // Replace the updateBlinkingItems function with this version
+            function updateBlinkingItems() {
+                const currentTime = Date.now();
+                if (currentTime - lastBlinkTime > blinkInterval) {
+                    blinkingItems.forEach(item => {
+                        if (item.material) {
+                            item.material.opacity = item.material.opacity === 1 ? 0.3 : 1;
+                        }
+                    });
+                    lastBlinkTime = currentTime;
+                }
+            }
+
             function showFloorInfo(floorNumber) {
                 const modal = document.getElementById('floorInfoModal');
                 const title = document.getElementById('floorInfoTitle');
@@ -1321,7 +1374,7 @@
 
             function animate() {
                 requestAnimationFrame(animate);
-                
+                updateBlinkingItems();
                 renderer.render(scene, camera);
                 if (controls) controls.update();
                 updateCameraMovement();
@@ -1360,27 +1413,57 @@
                 return sprite;
             }
 
-
-
             function toggleWorkers() {
                 const btn = document.getElementById('toggleWorkers');
                 if (!isWorkersVisible) {
-                    // Add helmets to the building
+                    // Define one color per group
+                    const groupColors = {
+                        'group1': '#4CAF50',     // Green
+                        'group2': '#2196F3',     // Blue
+                        'group3': '#FFC107',     // Amber
+                        'group4': '#FF5722',     // Deep Orange
+                        'group5': '#9C27B0',     // Purple
+                        'group6': '#009688',     // Teal
+                        'group7': '#795548',     // Brown
+                        'group8': '#673AB7',     // Deep Purple
+                        'group9': '#00BCD4',     // Cyan
+                        'group10': '#FF9800',     // Orange
+                        'group11': '#F44336',     // Red
+                        'group12': '#3F51B5',     // Indigo
+                        'group13': '#8BC34A',     // Light Green
+                        'group14': '#607D8B',     // Blue Grey
+                        'group15': '#FF4081',     // Pink
+                        'group16': '#00E676',     // Green Accent
+                        'group17': '#1DE9B6',     // Teal Accent
+                        'group18': '#D500F9',     // Purple Accent
+                        'group19': '#FFEA00',     // Yellow Accent
+                        'group20': '#FF3D00'      // Deep Orange Accent
+                    };
+
+                    const groupIds = Object.keys(groupColors);
                     let workerNumber = 1;
                     for (let floor = 0; floor < totalFloors; floor++) {
                         const numWorkers = Math.floor(Math.random() * 4) + 1;
                         for (let i = 0; i < numWorkers; i++) {
-                            const helmetColor = Math.random() < 1/3 ? '#ff0000' : '#ffff00';
+                            // Select a group for this worker
+                            const selectedGroup = groupIds[Math.floor(Math.random() * groupIds.length)];
+
+                            // Get color for the group
+                            const helmetColor = groupColors[selectedGroup];
+
                             const helmet = createHelmetSprite(helmetColor);
-                            
+
                             // Position helmet
                             const randLocation = getRandomLocation(buildingWidth, buildingDepth);
                             helmet.position.set(
                                 randLocation.x,
-                                floor * floorHeight + floorHeight/2,
+                                floor * floorHeight + floorHeight / 2,
                                 randLocation.y
                             );
                             helmet.scale.set(2, 2, 2);
+
+                            // Add worker group metadata
+                            helmet.userData = { group: selectedGroup };
 
                             // Add number
                             const number = createNumberSprite(workerNumber);
@@ -1401,6 +1484,9 @@
                 }
                 isWorkersVisible = !isWorkersVisible;
             }
+
+            
+            
             document.getElementById('toggleWorkers').addEventListener('click', toggleWorkers);
 
 

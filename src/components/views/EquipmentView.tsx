@@ -53,14 +53,48 @@ const EquipmentView = () => {
     );
   };
 
-  const handleLocateEquipment = (tagId: string) => {
-    // Implement logic to locate the equipment with the given tagId
-    console.log(`Locating equipment with tag ID: ${tagId}`);
+  const handleLocateEquipment = (tagId: string, name: string) => {
+    const equipment = {
+      tag_id: tagId,
+      name: name,
+      location: {
+        floor_physical: Math.floor(Math.random() * 15) + 1,
+        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+        is_exact: true
+      }
+    };
+
+    showEquipmentIframe(name, [equipment]);
   };
 
-  const handleLocateGroup = (groupId: string) => {
-    // Implement logic to locate all equipment in the group with the given groupId
-    console.log(`Locating all equipment in group with ID: ${groupId}`);
+  const showEquipmentIframe = (title: string, equipment: Array<object>) => {
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'SHOW_ITEMS',
+        data: {
+          type: 'equipment',
+          title: title,
+          items: equipment
+        },
+      }, '*');
+    }
+  };
+
+  const handleLocateGroup = (groupId: string, groupName: string) => {
+    const groupEquipment = equipment
+      .filter(eq => eq.groups.includes(groupId))
+      .map(eq => ({
+        tag_id: eq.tagId,
+        name: eq.name,
+        location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+        }
+      }));
+
+    showEquipmentIframe(groupName, groupEquipment);
   };
 
   const renderEquipmentView = () => (
@@ -95,7 +129,7 @@ const EquipmentView = () => {
               </div>
               <div className="col-span-1 text-right">
                 <button
-                  onClick={() => handleLocateEquipment(item.tagId)}
+                  onClick={() => handleLocateEquipment(item.tagId, item.name)}
                   className="text-gray-400 hover:text-cyan-500"
                 >
                   <MapPin size={18} />
@@ -149,7 +183,7 @@ const EquipmentView = () => {
               </div>
               <div className="flex items-center gap-4">
                 <button
-                    onClick={() => handleLocateGroup(group.id)}
+                  onClick={() => handleLocateGroup(group.id, group.name)}
                     className="text-gray-400 hover:text-cyan-500 flex items-center"
                   >
                     <MapPin size={18} /> Show Locations 
