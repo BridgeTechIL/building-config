@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import Footer from '@/components/layout/Footer'
@@ -199,7 +199,7 @@ export default function Home() {
     // Convert and update iframe zones
     const iframe = document.querySelector('iframe');
     if (iframe?.contentWindow) {
-      const contentWindow = iframe.contentWindow as any;
+      const contentWindow = iframe.contentWindow as Window & typeof globalThis & { showZones?: (zones: Array<object>) => void };
       if (typeof contentWindow.showZones === 'function') {
         const iframeZones = updatedFloors.flatMap(floor =>
           floor.zones.map(zone => ({
@@ -218,7 +218,7 @@ export default function Home() {
   const updateIframeZones = (updatedFloors: Floor[]) => {
     const iframe = document.querySelector('iframe');
     if (iframe?.contentWindow) {
-      const contentWindow = iframe.contentWindow as any;
+      const contentWindow = iframe.contentWindow as Window & typeof globalThis & { showZones?: (zones: Array<object>) => void };
       if (typeof contentWindow.showZones === 'function') {
         const iframeZones = updatedFloors.flatMap(floor =>
           floor.zones.map(zone => ({
