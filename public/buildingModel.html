@@ -148,8 +148,7 @@
     <script type="module">
         import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
         import {OBJLoader} from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js';
-        import {MTLLoader} from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/MTLLoader.js';
-        import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+        import {GLTFLoader} from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
         // Make THREE available globally for your existing code
         window.THREE = THREE;
@@ -179,6 +178,9 @@
             let itemTitle = null;
             let titleSprite = null;
             window.activeMenu = null;
+            let loaded_models = {
+                ppl: { path: 'models/safety_helmet.glb', obj: null }
+            };
 
              window.addEventListener('message', function (event) {
                 // Handle messages from the parent window
@@ -201,14 +203,13 @@
 
                      // Create and position title
                      titleSprite = createTextSprite(title);
-                     titleSprite.position.set(0, totalFloors * floorHeight + 5, 0);
+                     titleSprite.position.set(0, totalFloors * floorHeight + 10, 0);
                      titleSprite.scale.set(15, 4, 1);
                      scene.add(titleSprite);
                      activeItems.push(titleSprite);
 
                      // Create and position items
                      items.forEach(item => {
-                         const sprite = createItemSprite(type);
                          const label = createTextSprite(item.tag_id, 40);
 
                          const { floor_physical, xy, is_exact } = item.location;
@@ -224,15 +225,13 @@
 
                          const y = floor_physical * floorHeight + (floorHeight / 2);
 
-                         sprite.position.set(finalX, y, finalZ);
-                         sprite.scale.set(2, 2, 1);
+                         createItemSprite(type, finalX, y, finalZ);
+
 
                          label.position.set(finalX, y + 1.5, finalZ);
-                         label.scale.set(3, 1, 1);
-
-                         scene.add(sprite);
+                         label.scale.set(5, 1, 1);
                          scene.add(label);
-                         activeItems.push(sprite, label);
+                         activeItems.push(label);
 
                      });
 
@@ -286,19 +285,45 @@
             }
 
             // Add this function to create item sprites
-            function createItemSprite(type) {
+            function createItemSprite(type, x, y, z) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 64;
                 canvas.height = 64;
                 const ctx = canvas.getContext('2d');
 
                 if (type === 'ppl') {
-                    // Draw a person icon
-                    ctx.fillStyle = '#4A90E2';
-                    ctx.beginPath();
-                    ctx.arc(32, 20, 12, 0, Math.PI * 2); // Head
-                    ctx.fill();
-                    ctx.fillRect(20, 35, 24, 25); // Body
+                    if (!loaded_models[type]['obj']) {
+                        console.log(`Loading model for ${type}`);
+                        const loader = new GLTFLoader();
+                        loader.load(loaded_models[type]['path'], function (gltf) {
+                            const model = gltf.scene
+                            model.scale.set(0.7, 0.7, 0.7);
+                            const isRed = Math.random() < 1 / 3;
+                            const modelColor = isRed ? 0xff0000 : 0xffff00;
+                            model.traverse(child => {
+                                if (child.isMesh) {
+                                    child.material = new THREE.MeshBasicMaterial({ color: modelColor });
+                                }
+                            });
+                            loaded_models[type]['obj'] = model;
+                            model.position.set(x, y, z);
+                            scene.add(model);
+                            activeItems.push(model);
+                        });
+                    } else {
+                        let model = loaded_models[type]['obj'].clone();
+                        model.position.set(x, y, z);
+                        const isRed = Math.random() < 1 / 3;
+                        const modelColor = isRed ? 0xff0000 : 0xffff00;
+                        model.traverse(child => {
+                            if (child.isMesh) {
+                                child.material = new THREE.MeshBasicMaterial({ color: modelColor });
+                            }
+                        });
+                        scene.add(model);
+                        activeItems.push(model);
+                    }
+
                 } else if (type === 'equipment') {
                     ctx.fillStyle = '#F5A623';
                     ctx.beginPath();
@@ -1445,7 +1470,7 @@
                     objLoader.load(
                         'models/cam/cam.obj',
                         (camModel) => {
-                            camModel.scale.set(0.1, 0.1, 0.1);
+                            camModel.scale.set(0.05, 0.05, 0.05);
                             cams.forEach(cam => {
                                 const camModelClone = camModel.clone();
                                 const {name, streamUrl, location} = cam;

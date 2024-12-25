@@ -54,14 +54,93 @@ const WorkersView = () => {
     );
   };
 
-  const handleLocateWorker = (tagId: string) => {
+  const showWorkersIframe = (title: string, workers: Array<object>) => {
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'SHOW_ITEMS',
+        data: {type: 'ppl', title: title, items: workers},
+      }, '*');
+    }
+  };
+  const handleLocateWorker = (tagId: string, name: string) => {
     // Implement logic to locate the worker with the given tagId
     console.log(`Locating worker with tag ID: ${tagId}`);
+    name = name? name: tagId;
+    let workers = [
+      {
+        tag_id: tagId,
+        name: name,
+        location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+        }
+      }
+    ];
+    showWorkersIframe(name, workers);
   };
 
-  const handleLocateGroup = (groupId: string) => {
+  const handleLocateGroup = (GroupName: string) => {
     // Implement logic to locate all workers in the group with the given groupId
-    console.log(`Locating all workers in group with ID: ${groupId}`);
+    console.log(`Locating all workers in group with ID: ${GroupName}`);
+    let workers = [
+      {
+        tag_id: "123",
+        name: "John Doe",
+        location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+        }
+      },
+      {
+        tag_id: "456",
+        name: "Jane Doe",
+        location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+        }
+      },
+      {
+          tag_id: "789",
+          name: "Alice Doe",
+          location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+          }
+      },
+      {
+          tag_id: "101",
+          name: "Bob Doe",
+          location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+          }
+      },
+      {
+          tag_id: "202",
+          name: "Eve Doe",
+          location: {
+          floor_physical: Math.floor(Math.random() * 15) + 1,
+          xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+          is_exact: true
+          }
+      },
+      {
+            tag_id: "303",
+            name: "Mallory Doe",
+            location: {
+            floor_physical: Math.floor(Math.random() * 15) + 1,
+            xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+            is_exact: true
+            }
+      }
+    ];
+    showWorkersIframe(GroupName, workers);
   };
 
   const renderPeopleView = () => (
@@ -97,7 +176,7 @@ const WorkersView = () => {
               </div>
               <div className="col-span-1 text-right">
                 <button
-                  onClick={() => handleLocateWorker(worker.tagId)}
+                  onClick={() => handleLocateWorker(worker.tagId, worker.name)}
                   className="text-gray-400 hover:text-cyan-500"
                 >
                   <MapPin size={18} />
@@ -151,7 +230,7 @@ const WorkersView = () => {
               </div>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => handleLocateGroup(group.id)}
+                  onClick={() => handleLocateGroup(group.name)}
                   className="text-gray-400 hover:text-cyan-500 flex items-center"
                 >
                   <MapPin size={18} /> Show Locations 
