@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
 import { Worker, WorkerGroup, workers as initialWorkers, workerGroups as initialWorkerGroups } from '@/config/workers';
 import { MultiSelect } from '@/components/ui/MultiSelect';
@@ -11,11 +11,48 @@ const generateUniqueId = () => {
 type ViewMode = 'people' | 'groups';
 
 const WorkersView = () => {
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
+
+  useEffect(() => {
+  fetch('https://liftech-customer-portal-581577605318.us-central1.run.app/trade-tracking-data?project_id=263&names=true')
+    .then(response => response.json())
+    .then(data => {
+      const parsedWorkers = data.peeps.map((person: any) => ({
+        tagId: person.id.toString(),
+        name: `${person.first_name === 'N/A' ? 'Anon' : person.first_name} ${person.last_name === 'N/A' ? 'Anon' : person.last_name}`,
+        role: person.trade,
+        groups: [person.trade, person.company],
+      }));
+      setWorkers(parsedWorkers);
+
+      const parsedGroups = data.peeps.reduce((acc: WorkerGroup[], person: any) => {
+        if (!acc.find(group => group.id === person.trade)) {
+          acc.push({
+            id: person.trade,
+            name: person.trade,
+            description: ''
+          });
+        }
+        if (!acc.find(group => group.id === person.company)) {
+          acc.push({
+            id: person.company,
+            name: person.company,
+            description: ''
+          });
+        }
+        return acc;
+
+      }, []);
+      setWorkerGroups(parsedGroups);
+
+    })
+    .catch(error => console.error('Error fetching workers:', error));
+}, []);
+
   const [viewMode, setViewMode] = useState<ViewMode>('people');
-  const [workers, setWorkers] = useState<Worker[]>(initialWorkers);
-  const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>(initialWorkerGroups);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  const [groupCounter, setGroupCounter] = useState(initialWorkerGroups.length);
+  const [groupCounter, setGroupCounter] = useState(workerGroups.length);
 
   const handleWorkerUpdate = (tagId: string, updates: Partial<Worker>) => {
     setWorkers(prev => prev.map(worker => 
