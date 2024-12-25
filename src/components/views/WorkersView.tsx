@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
-import { Worker, WorkerGroup, workers as initialWorkers, workerGroups as initialWorkerGroups } from '@/config/workers';
+import { Worker, WorkerGroup } from '@/config/workers';
 import { MultiSelect } from '@/components/ui/MultiSelect';
 
 
