@@ -8,9 +8,12 @@ import SensorsView from '../views/SensorsView';
 
 
 interface ProjectManagementProps {
-  onExport?: () => Promise<void>;
+  onExport: () => Promise<void>;
   floors: Floor[];
   onUpdateFloorOrder: (newOrder: Floor[]) => void;
+  onAddZone: (floorId: string) => void;
+  onRemoveZone: (floorId: string, zoneId: string) => void;
+  onUpdateZone: (floorId: string, zoneId: string, updates: Partial<Zone>) => void;
   onUpdateFloor: (floorId: string, updates: Partial<Floor>) => void;
 }
 
@@ -37,7 +40,12 @@ const ProjectManagement = ({
       name: `Zone ${floor.zones.length + 1}`,
       isWifiPoint: false,
       isDangerPoint: false,
-      gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`
+      gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+      location: {
+        floor_physical: floor.level,
+        xy: [50, 50], // Default to center of the floor
+        is_exact: true
+      }
     };
 
     onUpdateFloor(floorId, {

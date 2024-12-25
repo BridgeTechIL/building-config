@@ -10,7 +10,12 @@ export interface Zone {
   name: string;
   isWifiPoint: boolean;
   isDangerPoint: boolean;
-  gateId: string;
+  gateId?: string;
+  location: {
+    floor_physical: number;
+    xy: [number, number];
+    is_exact: boolean;
+  };
 }
 
 export interface Floor {

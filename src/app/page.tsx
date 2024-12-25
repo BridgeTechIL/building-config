@@ -10,7 +10,7 @@ import CostReview from '@/components/forms/CostReview'
 import ProjectManagement from '@/components/forms/ProjectManagement'
 import { ProjectBasicInfo } from '@/types/building'
 import { calculateItemCost, getItemName } from '@/config/costs'
-import { Floor } from '@/types/building'
+import { Floor, Zone } from '@/types/building'
 
 const TOTAL_FLOORS = 25;
 
@@ -35,9 +35,48 @@ interface BuildingItems {
   };
 }
 
+// Initial zones data
+const initialZones = [
+  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 4, xy: [50, 25], is_exact: true } },
+  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 5, xy: [50, 25], is_exact: true } },
+  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 6, xy: [50, 25], is_exact: true } },
+  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 7, xy: [50, 25], is_exact: true } },
+  { name: 'דירה 1', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 25], is_exact: true } },
+  { name: 'דירה 2', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 75], is_exact: true } },
+  { name: 'דירה 3', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 25], is_exact: true } },
+  { name: 'דירה 4', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 75], is_exact: true } },
+
+  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 25], is_exact: true } },
+  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 75], is_exact: true } },
+  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 25], is_exact: true } },
+  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 75], is_exact: true } },
+
+  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 23, xy: [75, 75], is_exact: true } },
+  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 22, xy: [75, 75], is_exact: true } },
+  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 21, xy: [75, 75], is_exact: true } },
+  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 20, xy: [75, 75], is_exact: true } },
+
+  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 25], is_exact: true } },
+  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 75], is_exact: true } },
+  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 75], is_exact: true } },
+  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 25], is_exact: true } },
+  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 25], is_exact: true } },
+  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 75], is_exact: true } },
+  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 75], is_exact: true } },
+  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 25], is_exact: true } },
+  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 25], is_exact: true } },
+  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 75], is_exact: true } },
+  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 75], is_exact: true } },
+  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 25], is_exact: true } },
+  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 25], is_exact: true } },
+  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 75], is_exact: true } },
+  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 75], is_exact: true } },
+  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 25], is_exact: true } },
+
+]
+
 export default function Home() {
   const [step, setStep] = useState(1)
-  // const [floorCount, setFloorCount] = useState(0)
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
@@ -58,33 +97,141 @@ export default function Home() {
     }
   });
 
-  const [floors, setFloors] = useState<Floor[]>([
-    {
+  // Modified floors state initialization
+  const [floors, setFloors] = useState<Floor[]>(() => {
+    // Convert initial zones to the proper format and group by floor
+    const zonesByFloor: { [floorLevel: number]: Zone[] } = {};
+    initialZones.forEach((zone, index) => {
+      const floorLevel = zone.location.floor_physical;
+      if (!zonesByFloor[floorLevel]) {
+        zonesByFloor[floorLevel] = [];
+      }
+
+      zonesByFloor[floorLevel].push({
+        id: `zone_${index}`,
+        name: zone.name,
+        isWifiPoint: zone.is_wifi,
+        isDangerPoint: zone.is_dangerous,
+        gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+        location: {
+          floor_physical: zone.location.floor_physical,
+          xy: zone.location.xy as [number, number], // Type assertion here
+          is_exact: zone.location.is_exact
+        }
+      });
+    });
+
+    // Create initial floors array with zones
+    const baseFloor = {
       id: '0',
       level: 0,
       selected: false,
       isBase: true,
       items: { ...defaultItems },
-      zones: []  // Add this
-    }
-  ]);
+      zones: zonesByFloor[0] || []
+    };
 
-  useEffect(() => {
-    setFloors(currentFloors => {
-      const baseFloor = currentFloors[0];
-      
-      const additionalFloors = Array.from({ length: TOTAL_FLOORS }, (_, index) => ({
-        id: String(index + 1),
-        level: index + 1,
-        selected: false,
-        isBase: false,
-        items: { ...defaultItems },
-        zones: []  // Add this
-      }));
-  
-      return [baseFloor, ...additionalFloors];
-    });
-  }, []);
+    const additionalFloors = Array.from({ length: TOTAL_FLOORS }, (_, index) => ({
+      id: String(index + 1),
+      level: index + 1,
+      selected: false,
+      isBase: false,
+      items: { ...defaultItems },
+      zones: zonesByFloor[index + 1] || []
+    }));
+
+    return [baseFloor, ...additionalFloors];
+  });
+
+  // Zone management functions
+  const handleAddZone = (floorId: string) => {
+    const floor = floors.find(f => f.id === floorId);
+    if (!floor) return;
+
+    const newZone: Zone = {
+      id: `zone_${Date.now()}`,
+      name: `Zone ${floor.zones.length + 1}`,
+      isWifiPoint: false,
+      isDangerPoint: false,
+      gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+      location: {
+        floor_physical: floor.level,
+        xy: [50, 50] as [number, number], // Type assertion to ensure it's a tuple
+        is_exact: true
+      }
+    };
+
+    const updatedFloors = floors.map(f =>
+      f.id === floorId
+        ? { ...f, zones: [...f.zones, newZone] }
+        : f
+    );
+
+    setFloors(updatedFloors);
+    updateIframeZones(updatedFloors);
+  };
+
+  const handleRemoveZone = (floorId: string, zoneId: string) => {
+    const updatedFloors = floors.map(f =>
+      f.id === floorId
+        ? { ...f, zones: f.zones.filter(z => z.id !== zoneId) }
+        : f
+    );
+
+    setFloors(updatedFloors);
+    updateIframeZones(updatedFloors);
+  };
+
+  const handleUpdateZone = (floorId: string, zoneId: string, updates: Partial<Zone>) => {
+    const updatedFloors = floors.map(f =>
+      f.id === floorId
+        ? {
+          ...f,
+          zones: f.zones.map(z =>
+            z.id === zoneId ? { ...z, ...updates } : z
+          )
+        }
+        : f
+    );
+
+    setFloors(updatedFloors);
+
+    // Convert and update iframe zones
+    const iframe = document.querySelector('iframe');
+    if (iframe?.contentWindow) {
+      const contentWindow = iframe.contentWindow as any;
+      if (typeof contentWindow.showZones === 'function') {
+        const iframeZones = updatedFloors.flatMap(floor =>
+          floor.zones.map(zone => ({
+            name: zone.name,
+            is_wifi: zone.isWifiPoint,      // Convert to iframe format
+            is_dangerous: zone.isDangerPoint, // Convert to iframe format
+            location: zone.location
+          }))
+        );
+        contentWindow.showZones(iframeZones);
+      }
+    }
+  };
+
+  // Function to update iframe zones
+  const updateIframeZones = (updatedFloors: Floor[]) => {
+    const iframe = document.querySelector('iframe');
+    if (iframe?.contentWindow) {
+      const contentWindow = iframe.contentWindow as any;
+      if (typeof contentWindow.showZones === 'function') {
+        const iframeZones = updatedFloors.flatMap(floor =>
+          floor.zones.map(zone => ({
+            name: zone.name,
+            is_wifi: zone.isWifiPoint,
+            is_dangerous: zone.isDangerPoint,
+            location: zone.location
+          }))
+        );
+        contentWindow.showZones(iframeZones);
+      }
+    }
+  };
 
   const formatPrice = (price: number) => {
     return `$${Math.round(price).toLocaleString()}`;
@@ -92,7 +239,7 @@ export default function Home() {
 
   const calculateFloorItemsCost = () => {
     return floors.reduce((total, floor) => {
-      return total + Object.entries(floor.items).reduce((floorTotal, [itemKey, quantity]) => 
+      return total + Object.entries(floor.items).reduce((floorTotal, [itemKey, quantity]) =>
         floorTotal + calculateItemCost(itemKey, quantity), 0);
     }, 0);
   };
@@ -108,11 +255,11 @@ export default function Home() {
 
   const generateOrderNumber = (projectName: string) => {
     if (!projectName) return '#10000';
-    
+
     const firstLetter = projectName.charAt(0).toUpperCase();
     const randomNum = Math.floor(Math.random() * (9999 - 3500 + 1) + 3500);
     const lastChar = projectName.slice(-1).toUpperCase();
-    
+
     return `#SMSI${firstLetter}${randomNum}${lastChar}`;
   };
 
@@ -124,7 +271,7 @@ export default function Home() {
     };
 
     const floorsWithItems = floors.filter(hasItems);
-    
+
     try {
       const { generateAndDownloadPDF } = await import('@/utils/pdfUtils');
       await generateAndDownloadPDF({
@@ -152,7 +299,7 @@ export default function Home() {
         }
       }
     }
-    
+
     setValidationError(false);
     setStep(newStep);
   };
@@ -162,9 +309,9 @@ export default function Home() {
   };
 
   const updateFloorItem = (floorId: string, itemKey: string, value: number) => {
-    setFloors(prevFloors => 
-      prevFloors.map(floor => 
-        floor.id === floorId 
+    setFloors(prevFloors =>
+      prevFloors.map(floor =>
+        floor.id === floorId
           ? { ...floor, items: { ...floor.items, [itemKey]: value } }
           : floor
       )
@@ -173,6 +320,7 @@ export default function Home() {
 
   const updateFloorOrder = (newOrder: Floor[]) => {
     setFloors(newOrder);
+    updateIframeZones(newOrder);
   };
 
   const clearFloorItems = (floorId: string) => {
@@ -180,12 +328,12 @@ export default function Home() {
       prevFloors.map(floor =>
         floor.id === floorId
           ? {
-              ...floor,
-              items: Object.keys(floor.items).reduce((acc, key) => ({
-                ...acc,
-                [key]: 0
-              }), {})
-            }
+            ...floor,
+            items: Object.keys(floor.items).reduce((acc, key) => ({
+              ...acc,
+              [key]: 0
+            }), {})
+          }
           : floor
       )
     );
@@ -210,109 +358,60 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-white">
-{step < 4 ? (
-  <Sidebar
-    floorCount={TOTAL_FLOORS}
-    // setFloorCount={setFloorCount}
-    activeFloor={activeFloor}
-    setActiveFloor={setActiveFloor}
-    buildingItems={buildingItems}
-  />
-) : (
-  <div className="w-1/2 bg-white p-8 relative flex flex-col h-full">
-    <iframe
-        src="/buildingModel.html"
-        width="100%"
-        height="100%"
-        onLoad={() => {
-          const iframe = document.querySelector('iframe');
+      {step < 4 ? (
+        <Sidebar
+          floorCount={TOTAL_FLOORS}
+          activeFloor={activeFloor}
+          setActiveFloor={setActiveFloor}
+          buildingItems={buildingItems}
+        />
+      ) : (
+        <div className="w-1/2 bg-white p-8 relative flex flex-col h-full">
+          <iframe
+            src="/buildingModel.html"
+            width="100%"
+            height="100%"
+            onLoad={() => {
+              const iframe = document.querySelector('iframe');
+              if (iframe && iframe.contentWindow) {
+                const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void };
+                const iframeDocument = contentWindow.document;
+                const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
+                if (floorAmount) {
+                  floorAmount.value = String(25);
+                }
 
-          // Ensure iframe exists and its contentWindow is accessible
-          if (iframe && iframe.contentWindow) {
-            const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void };
-            const iframeDocument = contentWindow.document;
-            const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
-            if (floorAmount) {
-                    // floorAmount.value = String(floorCount + 1);
-                    floorAmount.value = String(25);
-            }
+                if (typeof contentWindow.showZones === 'function') {
+                  updateIframeZones(floors);
+                }
 
-                  // Update floors
-                  // if (typeof contentWindow.updateFloors === 'function') {
-                  //   contentWindow.updateFloors();
-                  // }
-
-                  // Show zones
-            if (typeof contentWindow.showZones === 'function') {
-              const zones = [
-                {name: 'איזור לובי', is_wifi: false, is_dangerous: false, location:{floor_physical: 4, xy: [50,25], is_exact: true}},
-                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 5, xy: [50, 25], is_exact: true } },
-                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 6, xy: [50, 25], is_exact: true } },
-                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 7, xy: [50, 25], is_exact: true } },
-                { name: 'דירה 1', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 25], is_exact: true } },
-                { name: 'דירה 2', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 75], is_exact: true } },
-                { name: 'דירה 3', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 25], is_exact: true } },
-                { name: 'דירה 4', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 75], is_exact: true } },
-
-                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 25], is_exact: true } },
-                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 75], is_exact: true } },
-                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 25], is_exact: true } },
-                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 75], is_exact: true } },
-
-                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 23, xy: [75, 75], is_exact: true } },
-                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 22, xy: [75, 75], is_exact: true } },
-                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 21, xy: [75, 75], is_exact: true } },
-                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 20, xy: [75, 75], is_exact: true } },
-
-                {name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location:{floor_physical: 0, xy: [25,25], is_exact: true}},
-                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 75], is_exact: true } },
-                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 75], is_exact: true } },
-                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 25], is_exact: true } },
-                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 25], is_exact: true } },
-                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 75], is_exact: true } },
-                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 75], is_exact: true } },
-                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 25], is_exact: true } },
-                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 25], is_exact: true } },
-                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 75], is_exact: true } },
-                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 75], is_exact: true } },
-                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 25], is_exact: true } },
-                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 25], is_exact: true } },
-                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 75], is_exact: true } },
-                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 75], is_exact: true } },
-                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 25], is_exact: true } },
-
-              ]
-              contentWindow.showZones(zones);
-            }
-
-            if (typeof contentWindow.addCameras === 'function') {
-              const cams = [
-                {name: 'Left', streamUrl: 'https://player.castr.com/live_094d9a001ee811eda8c7d91f796d7ea9', location:{floor_physical: 1, xy: [70,25], is_exact: true}},
-                {name: 'Right', streamUrl: 'https://player.castr.com/live_0f4235e0186e11edaba527aa44cc5f75', location:{floor_physical: 5, xy: [35,50], is_exact: true}},
-                {name: 'Lobby', streamUrl: 'https://player.castr.com/live_4aff5df0551411edb095b3325e745ec8', location:{floor_physical: 3, xy: [5,5], is_exact: true}},
-              ]
-              contentWindow.addCameras(cams);
-            }
-
-          }
-        }}
-    ></iframe>
-  </div>
-)}
+                if (typeof contentWindow.addCameras === 'function') {
+                  const cams = [
+                    { name: 'Left', streamUrl: 'https://player.castr.com/live_094d9a001ee811eda8c7d91f796d7ea9', location: { floor_physical: 1, xy: [70, 25], is_exact: true } },
+                    { name: 'Right', streamUrl: 'https://player.castr.com/live_0f4235e0186e11edaba527aa44cc5f75', location: { floor_physical: 5, xy: [35, 50], is_exact: true } },
+                    { name: 'Lobby', streamUrl: 'https://player.castr.com/live_4aff5df0551411edb095b3325e745ec8', location: { floor_physical: 3, xy: [5, 5], is_exact: true } },
+                  ]
+                  contentWindow.addCameras(cams);
+                }
+              }
+            }}
+          ></iframe>
+        </div>
+      )}
       <div className="w-1/2 flex flex-col relative shadow-xl"
-           style={{
-             background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
-           }}>
-        <Header projectName={step === 1 ? '' : projectData.name}/>
-        <Steps currentStep={step}/>
+        style={{
+          background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
+        }}>
+        <Header projectName={step === 1 ? '' : projectData.name} />
+        <Steps currentStep={step} />
         <div className="flex-1 relative overflow-hidden">
           {step === 1 && (
-              <BasicInfo
-                  ref={basicInfoRef}
-                  formData={projectData}
-                  updateField={updateProjectField}
-                  hasError={validationError}
-              />
+            <BasicInfo
+              ref={basicInfoRef}
+              formData={projectData}
+              updateField={updateProjectField}
+              hasError={validationError}
+            />
           )}
           {step === 2 && (
               <FloorConfig
@@ -334,13 +433,16 @@ export default function Home() {
             />
           )}
           {step === 4 && (
-            <ProjectManagement 
+            <ProjectManagement
               onExport={handleExport}
               floors={floors}
               onUpdateFloorOrder={updateFloorOrder}
+              onAddZone={handleAddZone}        // Add this
+              onRemoveZone={handleRemoveZone}  // Add this
+              onUpdateZone={handleUpdateZone}  // Add this
               onUpdateFloor={(floorId, updates) => {
-                setFloors(prevFloors => 
-                  prevFloors.map(floor => 
+                setFloors(prevFloors =>
+                  prevFloors.map(floor =>
                     floor.id === floorId ? { ...floor, ...updates } : floor
                   )
                 );
