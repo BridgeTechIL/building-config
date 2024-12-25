@@ -14,7 +14,7 @@ interface BuildingItems {
 
 interface SidebarProps {
   floorCount: number;
-  setFloorCount: React.Dispatch<React.SetStateAction<number>>;
+  // setFloorCount: React.Dispatch<React.SetStateAction<number>>;
   activeFloor: number | undefined;
   setActiveFloor: (value: number | undefined) => void;
   buildingItems?: BuildingItems;  // Made optional
@@ -22,7 +22,7 @@ interface SidebarProps {
 
 export default function Sidebar({ 
   floorCount, 
-  setFloorCount, 
+  // setFloorCount, 
   activeFloor, 
   setActiveFloor,
   buildingItems
@@ -65,14 +65,14 @@ export default function Sidebar({
         <span className="font-medium">Building View</span>
         <div className="mt-4 flex justify-between items-center">
           <button 
-            onClick={() => setFloorCount(c => Math.max(0, c - 1))}
+            // onClick={() => setFloorCount(c => Math.max(0, c - 1))}
             className={`bg-red-500 text-white px-4 me-2 py-2 rounded-full flex items-center gap-2 ${floorCount === 0 ? 'invisible' : ''}`}
           >
             <Minus size={20} />
             Remove Floor
           </button>
           <button 
-            onClick={() => setFloorCount(c => c + 1)}
+            // onClick={() => setFloorCount(c => c + 1)}
             className="bg-cyan-500 text-white px-4 py-2 rounded-full flex items-center gap-2"
           >
             <Plus size={20} />

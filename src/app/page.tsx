@@ -12,7 +12,7 @@ import { ProjectBasicInfo } from '@/types/building'
 import { calculateItemCost, getItemName } from '@/config/costs'
 import { Floor } from '@/types/building'
 
-
+const TOTAL_FLOORS = 25;
 
 const defaultItems = {
   gate: 0,
@@ -37,7 +37,7 @@ interface BuildingItems {
 
 export default function Home() {
   const [step, setStep] = useState(1)
-  const [floorCount, setFloorCount] = useState(0)
+  // const [floorCount, setFloorCount] = useState(0)
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
@@ -73,7 +73,7 @@ export default function Home() {
     setFloors(currentFloors => {
       const baseFloor = currentFloors[0];
       
-      const additionalFloors = Array.from({ length: floorCount }, (_, index) => ({
+      const additionalFloors = Array.from({ length: TOTAL_FLOORS }, (_, index) => ({
         id: String(index + 1),
         level: index + 1,
         selected: false,
@@ -84,7 +84,7 @@ export default function Home() {
   
       return [baseFloor, ...additionalFloors];
     });
-  }, [floorCount]);
+  }, []);
 
   const formatPrice = (price: number) => {
     return `$${Math.round(price).toLocaleString()}`;
@@ -212,8 +212,8 @@ export default function Home() {
     <div className="flex h-screen bg-white">
 {step < 4 ? (
   <Sidebar
-    floorCount={floorCount}
-    setFloorCount={setFloorCount}
+    floorCount={TOTAL_FLOORS}
+    // setFloorCount={setFloorCount}
     activeFloor={activeFloor}
     setActiveFloor={setActiveFloor}
     buildingItems={buildingItems}
@@ -231,21 +231,56 @@ export default function Home() {
           if (iframe && iframe.contentWindow) {
             const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void };
             const iframeDocument = contentWindow.document;
-
-            // Safely attempt to access the DOM element and call the function
             const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
             if (floorAmount) {
-              floorAmount.value = String(floorCount + 1); // Ensure value is a string
+                    // floorAmount.value = String(floorCount + 1);
+                    floorAmount.value = String(25);
             }
 
-            if (typeof contentWindow.updateFloors === 'function') {
-              contentWindow.updateFloors();
-            }
+                  // Update floors
+                  // if (typeof contentWindow.updateFloors === 'function') {
+                  //   contentWindow.updateFloors();
+                  // }
+
+                  // Show zones
             if (typeof contentWindow.showZones === 'function') {
               const zones = [
-                {name: 'normal', is_wifi: false, is_dangerous: false, location:{floor_physical: 4, xy: [70,25], is_exact: true}},
-                {name: 'danger', is_wifi: true, is_dangerous: true, location:{floor_physical: 7, xy: [50,70], is_exact: true}},
-                {name: 'wifi', is_wifi: true, is_dangerous: false, location:{floor_physical: 2, xy: [35,50], is_exact: true}},
+                {name: 'איזור לובי', is_wifi: false, is_dangerous: false, location:{floor_physical: 4, xy: [50,25], is_exact: true}},
+                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 5, xy: [50, 25], is_exact: true } },
+                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 6, xy: [50, 25], is_exact: true } },
+                { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 7, xy: [50, 25], is_exact: true } },
+                { name: 'דירה 1', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 25], is_exact: true } },
+                { name: 'דירה 2', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 75], is_exact: true } },
+                { name: 'דירה 3', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 25], is_exact: true } },
+                { name: 'דירה 4', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 75], is_exact: true } },
+
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 25], is_exact: true } },
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 75], is_exact: true } },
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 25], is_exact: true } },
+                { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 75], is_exact: true } },
+
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 23, xy: [75, 75], is_exact: true } },
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 22, xy: [75, 75], is_exact: true } },
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 21, xy: [75, 75], is_exact: true } },
+                { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 20, xy: [75, 75], is_exact: true } },
+
+                {name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location:{floor_physical: 0, xy: [25,25], is_exact: true}},
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 25], is_exact: true } },
+                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 25], is_exact: true } },
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 25], is_exact: true } },
+                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 25], is_exact: true } },
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 25], is_exact: true } },
+                { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 25], is_exact: true } },
+                { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 75], is_exact: true } },
+                { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 75], is_exact: true } },
+                { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 25], is_exact: true } },
+
               ]
               contentWindow.showZones(zones);
             }
