@@ -64,7 +64,7 @@ const WorkersView = () => {
     }
   };
   
-  const handleLocateWorker = (tagId: string, name: string) => {
+  const handleLocateWorker = (tagId: string) => {
     const worker = workers.find(w => w.tagId === tagId);
     if (worker) {
       const workerLocation = [
@@ -136,7 +136,7 @@ const WorkersView = () => {
               </div>
               <div className="col-span-1 text-right">
                 <button
-                  onClick={() => handleLocateWorker(worker.tagId, worker.name)}
+                  onClick={() => handleLocateWorker(worker.tagId)}
                   className="text-gray-400 hover:text-cyan-500"
                 >
                   <MapPin size={18} />

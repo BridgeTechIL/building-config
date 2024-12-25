@@ -1,7 +1,7 @@
 import { Zone, Floor } from '@/types/building';
 
 
-export function convertIframeZonesToFloorZones(iframeZones: any[]): { [floorId: string]: Zone[] } {
+export function convertIframeZonesToFloorZones(iframeZones: { name: string; is_wifi: boolean; is_dangerous: boolean; location: { floor_physical: number; xy: [number, number]; is_exact: boolean } }[]) {
     const floorZones: { [floorId: string]: Zone[] } = {};
 
     iframeZones.forEach((zone, index) => {
@@ -27,7 +27,7 @@ export function convertIframeZonesToFloorZones(iframeZones: any[]): { [floorId: 
     return floorZones;
 }
 
-export function convertFloorZonesToIframeZones(floors: Floor[]): any[] {
+export function convertFloorZonesToIframeZones(floors: Floor[]) {
     return floors.flatMap(floor =>
         floor.zones.map(zone => ({
             name: zone.name,
