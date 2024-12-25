@@ -121,6 +121,15 @@
         <button onclick="restoreImage()">Close</button>
     </div>
 
+    <div id="singleCameraModal" class="modal">
+        <h3 id="singleCameraTitle"></h3>
+        <div id="singleCameraContent">
+            <img id="floorImage" src="floor.png" style="height: 70%; width: 70%; cursor: pointer;"
+                onclick="replaceWithIframe('https://player.castr.com/live_1deb88e0b56e11ef8f0e3fcb84ef4d27')">
+        </div>
+        <button onclick="restoreImage()">Close</button>
+    </div>
+
     <div id="floorModal" class="modal">
         <h3>Enter number of floors:</h3>
         <input type="number" id="floorInput" min="1" max="100" value="25">
@@ -719,7 +728,7 @@
 
             const CAMERA_POSITIONS = {
                 ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 3),
-                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 4)
+                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 5)
             };
 
             // Track camera state independently of floor state
@@ -1278,6 +1287,8 @@
                 }
             }
 
+            
+
             // Replace the updateBlinkingItems function with this version
             function updateBlinkingItems() {
                 const currentTime = Date.now();
@@ -1328,6 +1339,8 @@
                 // Add the iframe to the content div
                 contentDiv.appendChild(iframe);
             }
+
+            
 
 
             function createBuildingLines() {
