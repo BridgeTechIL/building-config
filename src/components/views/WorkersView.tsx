@@ -67,7 +67,7 @@ const WorkersView = () => {
     // Implement logic to locate the worker with the given tagId
     console.log(`Locating worker with tag ID: ${tagId}`);
     name = name? name: tagId;
-    let workers = [
+    const workers = [
       {
         tag_id: tagId,
         name: name,
@@ -84,7 +84,7 @@ const WorkersView = () => {
   const handleLocateGroup = (GroupName: string) => {
     // Implement logic to locate all workers in the group with the given groupId
     console.log(`Locating all workers in group with ID: ${GroupName}`);
-    let workers = [
+    const workers = [
       {
         tag_id: "123",
         name: "John Doe",
