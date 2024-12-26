@@ -496,7 +496,7 @@
                 createBuilding();
                 // createBuildingLines();
 
-                camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2);
+                camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.5);
                 // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                 raycaster.setFromCamera(mouse, camera);
                 
@@ -729,7 +729,7 @@
             }
 
             const CAMERA_POSITIONS = {
-                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 2),
+                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 2.5),
                 ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 4)
             };
 
@@ -1517,7 +1517,7 @@
                     createBuilding();
                     // createBuildingLines();
                     if (isWorkersVisible) { toggleWorkers(); }
-                    camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2);
+                    camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.5);
                     // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                     raycaster.setFromCamera(mouse, camera);
                 }

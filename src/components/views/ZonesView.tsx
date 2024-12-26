@@ -106,7 +106,7 @@ function ZoneFloorItem({
         </div>
         <div className="flex-1 flex items-center gap-4 ml-2">
           <span className="font-medium text-lg text-gray-800">
-            {floor.id}
+            Floor {floor.id}
           </span>
           <span className="text-sm text-gray-500">
             {floor.zones.length} Zones

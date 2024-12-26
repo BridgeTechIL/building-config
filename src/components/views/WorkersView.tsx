@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
 import { Worker, WorkerGroup } from '@/config/workers';
 import { MultiSelect } from '@/components/ui/MultiSelect';
+import {useSearchParams} from "next/navigation";
 
 
 const generateUniqueId = () => {
@@ -13,9 +14,11 @@ type ViewMode = 'people' | 'groups';
 const WorkersView = () => {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
+  const searchParams = useSearchParams(); // Access search params
+  const projectId = searchParams.get('project_id'); // Get the "project_id" param
 
   useEffect(() => {
-  fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=263&names=true')
+  fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
     .then(response => response.json())
     .then(data => {
       const parsedWorkers = data.peeps.map((person: any) => ({

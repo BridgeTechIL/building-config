@@ -10,6 +10,8 @@ import CostReview from '@/components/forms/CostReview'
 import ProjectManagement from '@/components/forms/ProjectManagement'
 import {Floor, ProjectBasicInfo, Zone} from '@/types/building'
 import {calculateItemCost, getItemName} from '@/config/costs'
+import {useSearchParams} from "next/navigation";
+
 
 const defaultItems = {
   gate: 0,
@@ -73,6 +75,8 @@ const initialZones = [
 ]
 
 export default function Home() {
+  const searchParams = useSearchParams(); // Access search params
+  const projectId = searchParams.get('project_id'); // Get the "project_id" param
   const [step, setStep] = useState(1)
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
@@ -97,24 +101,25 @@ export default function Home() {
   // Modified floors state initialization
 const [floors, setFloors] = useState<Floor[]>([]);
 const [floorNames, setFloorNames] = useState<Floor[]>([]);
-
 useEffect(() => {
-  fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=263&names=true')
-    .then(response => response.json())
-    .then(data => {
-      const fetchedFloors = Object.entries(data.floor_names).map(([key, value]) => ({
-        id: String(value),
-        level: parseInt(key, 10),
-        selected: false,
-        isBase: key === "0",
-        items: { ...defaultItems },
-        zones: []
-      }));
-      setFloors(fetchedFloors);
-      setFloorNames(data.floor_names);
-    })
-    .catch(error => console.error('Error fetching floors:', error));
-}, []);
+
+  if (projectId) {
+    fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
+        .then(response => response.json())
+        .then(data => {
+          const fetchedFloors = Object.entries(data.floor_names).map(([key, value]) => ({
+            id: String(value),
+            level: parseInt(key, 10),
+            selected: false,
+            isBase: key === "0",
+            items: {...defaultItems},
+            zones: []
+          }));
+          setFloors(fetchedFloors);
+          setFloorNames(data.floor_names);
+        })
+        .catch(error => console.error('Error fetching floors:', error));
+  }}, []);
 
 
 
