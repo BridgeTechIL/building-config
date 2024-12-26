@@ -180,7 +180,7 @@
             let wifiFloors = new Set();
             let workers = [];
             let isWorkersVisible = false;
-            let ground_floor = 4;
+            let floorsNames = [];
             let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
             let activeItems = [];
             let currentZones = [];
@@ -275,12 +275,14 @@
                 const { name, is_wifi, is_dangerous, location } = zone;
                 const { floor_physical, xy, is_exact } = location;
                 const zoneGeometry = new THREE.BoxGeometry(buildingWidth/2 - 1, 0.3, buildingDepth/2 - 1);
-                const zoneMaterial = new THREE.MeshBasicMaterial({
-                    color: is_dangerous? 0xff0000 : is_wifi? 0xFFFF00 : 0x0000FF,
-                    transparent: true,
-                    opacity: 0.5
+                const material = new THREE.MeshStandardMaterial({
+                  emissive: is_dangerous? 0xff0000 : is_wifi? 0xFFFF00 : 0x0000FF,
+                  color: 0x000000,
+                  emissiveIntensity: 1, // Glow intensity
+                  transparent: true,
+                  opacity: 0.4
                 });
-                const zoneMesh = new THREE.Mesh(zoneGeometry, zoneMaterial);
+                const zoneMesh = new THREE.Mesh(zoneGeometry, material);
                 const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
                 let finalX = worldCoords.x;
                 let finalZ = worldCoords.z;
@@ -494,8 +496,8 @@
                 createBuilding();
                 // createBuildingLines();
 
-                camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
-                camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2);
+                // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                 raycaster.setFromCamera(mouse, camera);
                 
                 
@@ -590,8 +592,8 @@
                 context.font = 'Bold 400px Arial';
                 context.fillStyle = 'black';
                 context.textAlign = 'center';
-                let floorName = floor - ground_floor;
-                context.fillText(floor === ground_floor ? 'L' : floorName, 512, 612);
+                let floorName = floorsNames[`${floor}`] || `${floor}`;
+                context.fillText(floorName, 512, 612);
 
                 const texture = new THREE.CanvasTexture(canvas);
                 const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
@@ -724,11 +726,11 @@
             const CONSTANT_LOOK_AT = {
                 ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, 0),
                 ZOOMED_OUT: new THREE.Vector3(-10, totalFloors * floorHeight / 2, 0),
-            } 
+            }
 
             const CAMERA_POSITIONS = {
-                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 3),
-                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 5)
+                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 2),
+                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 4)
             };
 
             // Track camera state independently of floor state
@@ -764,7 +766,7 @@
                         // Camera animation - only if we're fully closing the floor view
                         if (floorNumber === null) {
                             camera.position.lerp(CAMERA_POSITIONS.ZOOMED_IN, easing);
-                            camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_IN);
+                            // camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_IN);
                             raycaster.setFromCamera(mouse, camera);
                             if (progress === 1) {
                                 isCameraZoomedOut = false;
@@ -861,7 +863,7 @@
                     // Camera animation - only if we're not already zoomed out
                     if (!isCameraZoomedOut) {
                         camera.position.lerp(CAMERA_POSITIONS.ZOOMED_OUT, easing);
-                        camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_OUT);
+                        // camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_OUT);
                         raycaster.setFromCamera(mouse, camera);
                         if (progress === 1) {
                             isCameraZoomedOut = true;
@@ -923,7 +925,7 @@
 
                     // Create floor plane
                     const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
-                    const floorMaterial = floor < ground_floor ? materials.underground.clone() : materials.floor.clone();
+                    const floorMaterial = materials.floor.clone();
                     const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
                     floorMesh.position.y = floor * floorHeight;
                     floorMesh.isFloor = true;
@@ -1302,23 +1304,6 @@
                 }
             }
 
-            function showFloorInfo(floorNumber) {
-                const modal = document.getElementById('floorInfoModal');
-                const title = document.getElementById('floorInfoTitle');
-                // const content = document.getElementById('floorInfoContent');
-
-                // Set floor name (L for lobby floor, number for others)
-                const floorName = floorNumber === ground_floor ? 'Lobby' : (floorNumber - ground_floor).toString();
-                title.textContent = `Floor ${floorName}`;
-
-                // Add floor information
-                // content.innerHTML = `
-                //     <p>Height: ${(floorNumber * floorHeight).toFixed(1)}m</p>
-                //     <p>WIFI: ${wifiFloors.has(floorNumber) ? 'Enabled' : 'Disabled'}</p>
-                // `;
-
-                modal.style.display = 'block';
-            }
 
             window.replaceWithIframe = function (url) {
                 const contentDiv = document.getElementById('floorInfoContent');
@@ -1532,26 +1517,15 @@
                     createBuilding();
                     // createBuildingLines();
                     if (isWorkersVisible) { toggleWorkers(); }
-                    camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
-                    camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                    camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2);
+                    // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                     raycaster.setFromCamera(mouse, camera);
                 }
                 document.getElementById('floorModal').style.display = 'none';
             }
 
-            window.updateLobbyFloor = function () {
-                const newLobbyFloor = parseInt(document.getElementById('lobbyFloorInput').value);
-                while (scene.children.length > 0) {
-                    scene.remove(scene.children[0]);
-                }
-                ground_floor = newLobbyFloor;
-                createBuilding();
-                // createBuildingLines();
-                if (isWorkersVisible) { toggleWorkers(); }
-                camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
-                camera.lookAt(0, totalFloors * floorHeight / 2, 0);
-                raycaster.setFromCamera(mouse, camera);
-                document.getElementById('lobbyFloorModal').style.display = 'none';
+            window.updateFloorNames = function (names) {
+                floorsNames = names;
             }
 
             window.showZones = function(zones) {

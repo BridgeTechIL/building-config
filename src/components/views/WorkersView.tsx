@@ -15,14 +15,15 @@ const WorkersView = () => {
   const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
 
   useEffect(() => {
-  fetch('https://liftech-customer-portal-581577605318.us-central1.run.app/trade-tracking-data?project_id=263&names=true')
+  fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=263&names=true')
     .then(response => response.json())
     .then(data => {
       const parsedWorkers = data.peeps.map((person: any) => ({
         tagId: person.id.toString(),
+        floor_physical: person.floor,
         name: `${person.first_name === 'N/A' ? 'Anon' : person.first_name} ${person.last_name === 'N/A' ? 'Anon' : person.last_name}`,
         role: person.trade,
-        groups: [person.trade, person.company],
+        groups: Array.from(new Set([person.trade, person.company])),
       }));
       setWorkers(parsedWorkers);
 
@@ -109,7 +110,7 @@ const WorkersView = () => {
           tag_id: worker.tagId,
           name: worker.name,
           location: {
-            floor_physical: Math.floor(Math.random() * 15) + 1,
+            floor_physical: worker.floor_physical,
             xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
             is_exact: true
           }
@@ -129,7 +130,7 @@ const WorkersView = () => {
           tag_id: worker.tagId,
           name: worker.name,
           location: {
-            floor_physical: Math.floor(Math.random() * 15) + 1,
+            floor_physical: worker.floor_physical,
             xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
             is_exact: true
           }
@@ -159,7 +160,7 @@ const WorkersView = () => {
                   type="text"
                   value={worker.name}
                   onChange={(e) => handleWorkerUpdate(worker.tagId, { name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-800"
                   placeholder="Enter worker name"
                 />
               </div>
@@ -211,7 +212,7 @@ const WorkersView = () => {
                     type="text"
                     value={group.name}
                     onChange={(e) => handleGroupUpdate(group.id, { name: e.target.value })}
-                    className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2"
+                    className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800"
                   />
                   <span className="text-sm text-gray-500">
                     ({groupWorkerCount} workers)

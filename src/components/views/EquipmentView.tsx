@@ -115,7 +115,7 @@ const EquipmentView = () => {
                   type="text"
                   value={item.name}
                   onChange={(e) => handleEquipmentUpdate(item.tagId, { name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-800"
                   placeholder="Enter equipment name"
                 />
               </div>
@@ -167,7 +167,7 @@ const EquipmentView = () => {
                     type="text"
                     value={group.name}
                     onChange={(e) => handleGroupUpdate(group.id, { name: e.target.value })}
-                    className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2"
+                    className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800"
                   />
                   <span className="text-sm text-gray-500">
                     ({groupItemCount} items)

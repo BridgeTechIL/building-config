@@ -80,7 +80,7 @@ const SensorsView = () => {
                 type="text"
                 value={sensor.name}
                 onChange={(e) => handleSensorUpdate(sensor.tagId, { name: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-800"
                 placeholder="Enter sensor name"
               />
             </div>

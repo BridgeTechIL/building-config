@@ -53,7 +53,7 @@ const CameraModal = ({ isOpen, onClose, floor, floors }: CameraModalProps) => {
       <div className="bg-white rounded-lg shadow-xl w-[800px] max-w-[90vw]">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-semibold">
-            {currentFloor.isBase ? 'Ground Floor' : `Floor ${currentFloor.level}`} Cameras
+            {`Floor ${currentFloor.id}`} Cameras
           </h2>
           <div className="flex items-center gap-4">
             <span className="text-gray-500">

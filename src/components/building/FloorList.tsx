@@ -104,7 +104,7 @@ function FloorItemComponent({ floor, isExpanded, isSelected, onToggleExpand, onU
         </div>
         <div className="flex-1 flex items-center gap-4 ml-2">
           <span className="font-medium text-lg">
-            {floor.isBase ? 'Ground Floor' : `Level ${floor.level}`}
+            {floor.id}
           </span>
           <div className="flex items-center gap-2">
             <span className="bg-gray-100 px-2 py-1 rounded-full text-sm text-gray-600">

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import {useEffect, useRef, useState} from 'react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import Footer from '@/components/layout/Footer'
@@ -8,11 +8,8 @@ import FloorConfig from '@/components/forms/FloorConfig'
 import Steps from '@/components/layout/Steps'
 import CostReview from '@/components/forms/CostReview'
 import ProjectManagement from '@/components/forms/ProjectManagement'
-import { ProjectBasicInfo } from '@/types/building'
-import { calculateItemCost, getItemName } from '@/config/costs'
-import { Floor, Zone } from '@/types/building'
-
-const TOTAL_FLOORS = 25;
+import {Floor, ProjectBasicInfo, Zone} from '@/types/building'
+import {calculateItemCost, getItemName} from '@/config/costs'
 
 const defaultItems = {
   gate: 0,
@@ -98,50 +95,28 @@ export default function Home() {
   });
 
   // Modified floors state initialization
-  const [floors, setFloors] = useState<Floor[]>(() => {
-    // Convert initial zones to the proper format and group by floor
-    const zonesByFloor: { [floorLevel: number]: Zone[] } = {};
-    initialZones.forEach((zone, index) => {
-      const floorLevel = zone.location.floor_physical;
-      if (!zonesByFloor[floorLevel]) {
-        zonesByFloor[floorLevel] = [];
-      }
+const [floors, setFloors] = useState<Floor[]>([]);
+const [floorNames, setFloorNames] = useState<Floor[]>([]);
 
-      zonesByFloor[floorLevel].push({
-        id: `zone_${index}`,
-        name: zone.name,
-        isWifiPoint: zone.is_wifi,
-        isDangerPoint: zone.is_dangerous,
-        gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
-        location: {
-          floor_physical: zone.location.floor_physical,
-          xy: zone.location.xy as [number, number], // Type assertion here
-          is_exact: zone.location.is_exact
-        }
-      });
-    });
+useEffect(() => {
+  fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=263&names=true')
+    .then(response => response.json())
+    .then(data => {
+      const fetchedFloors = Object.entries(data.floor_names).map(([key, value]) => ({
+        id: String(value),
+        level: parseInt(key, 10),
+        selected: false,
+        isBase: key === "0",
+        items: { ...defaultItems },
+        zones: []
+      }));
+      setFloors(fetchedFloors);
+      setFloorNames(data.floor_names);
+    })
+    .catch(error => console.error('Error fetching floors:', error));
+}, []);
 
-    // Create initial floors array with zones
-    const baseFloor = {
-      id: '0',
-      level: 0,
-      selected: false,
-      isBase: true,
-      items: { ...defaultItems },
-      zones: zonesByFloor[0] || []
-    };
 
-    const additionalFloors = Array.from({ length: TOTAL_FLOORS }, (_, index) => ({
-      id: String(index + 1),
-      level: index + 1,
-      selected: false,
-      isBase: false,
-      items: { ...defaultItems },
-      zones: zonesByFloor[index + 1] || []
-    }));
-
-    return [baseFloor, ...additionalFloors];
-  });
 
   // Zone management functions
   const handleAddZone = (floorId: string) => {
@@ -360,7 +335,7 @@ export default function Home() {
     <div className="flex h-screen bg-white">
       {step < 4 ? (
         <Sidebar
-          floorCount={TOTAL_FLOORS}
+          floorCount={floors.length}
           activeFloor={activeFloor}
           setActiveFloor={setActiveFloor}
           buildingItems={buildingItems}
@@ -374,15 +349,19 @@ export default function Home() {
             onLoad={() => {
               const iframe = document.querySelector('iframe');
               if (iframe && iframe.contentWindow) {
-                const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void };
+                const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void } & { updateFloorNames?: (names: Array<object>) => void };
                 const iframeDocument = contentWindow.document;
                 const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
                 if (floorAmount) {
-                  floorAmount.value = String(25);
+                  floorAmount.value = String(floors.length);
                 }
 
-                if (typeof contentWindow.showZones === 'function') {
-                  updateIframeZones(floors);
+                if (typeof contentWindow.updateFloorNames === 'function') {
+                  contentWindow.updateFloorNames(floorNames);
+                }
+
+                if (typeof contentWindow.updateFloors === 'function') {
+                  contentWindow.updateFloors();
                 }
 
                 if (typeof contentWindow.addCameras === 'function') {
