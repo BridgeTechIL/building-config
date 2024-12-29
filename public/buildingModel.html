@@ -810,7 +810,7 @@
                 // Helper function to check if an object belongs to this floor
                 const isInFloorRange = (position) => {
                     return position.y >= floorY - wallThickness / 2 &&
-                        position.y <= floorY + floorHeight + wallThickness / 2;
+                        position.y < floorY + floorHeight;
                 };
 
                 // Collect and clone floor components
@@ -989,6 +989,9 @@
                                         wallHeight / 2,
                                         0
                                     );
+                                const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
+                                const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
+                                wallMesh.add(verticalLine);
                                 } else { // Left/right walls
                                     lineStart = new THREE.Vector3(
                                         0,
@@ -1002,9 +1005,6 @@
                                     );
                                 }
 
-                                const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
-                                const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
-                                wallMesh.add(verticalLine);
                             }
                         }
                     });
