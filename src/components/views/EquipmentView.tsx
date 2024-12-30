@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
-import { Equipment, EquipmentGroup, equipment as initialEquipment, equipmentGroups as initialEquipmentGroups } from '@/config/equipment';
+import { Equipment, EquipmentGroup } from '@/config/equipment';
 import { MultiSelect } from '@/components/ui/MultiSelect';
+import {useSearchParams} from "next/navigation";
 
 const generateUniqueId = () => {
   return `G${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
@@ -11,10 +12,36 @@ type ViewMode = 'equipment' | 'groups';
 
 const EquipmentView = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('equipment');
-  const [equipment, setEquipment] = useState<Equipment[]>(initialEquipment);
-  const [equipmentGroups, setEquipmentGroups] = useState<EquipmentGroup[]>(initialEquipmentGroups);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [equipmentGroups, setEquipmentGroups] = useState<EquipmentGroup[]>([]);
+  const searchParams = useSearchParams(); // Access search params
+  const projectId = searchParams.get('project_id'); // Get the "project_id" param
+
+  useEffect(() => {
+  fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
+    .then(response => response.json())
+    .then(data => {
+      const parsedGroups = data.equipment_groups.map((group: any) => ({
+        id: group.id.toString(),
+        name: group.name,
+      }));
+      setEquipmentGroups(parsedGroups);
+      const parsedEquipment = data.stuff.map((item: any) => ({
+        tagId: item.id.toString(),
+        floor_physical: item.floor,
+        name: item.name? item.name : 'Unnamed Equipment',
+        type: item.name? item.name : 'Unnamed Equipment',
+        groups: item.groups.map((group: any) => group.toString())
+      }));
+      setEquipment(parsedEquipment);
+
+    })
+    .catch(error => console.error('Error fetching equipment:', error));
+}, []);
+
+
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  const [groupCounter, setGroupCounter] = useState(initialEquipmentGroups.length);
+  const [groupCounter, setGroupCounter] = useState(equipmentGroups.length);
 
   const handleEquipmentUpdate = (tagId: string, updates: Partial<Equipment>) => {
     setEquipment(prev => prev.map(item => 
@@ -54,17 +81,21 @@ const EquipmentView = () => {
   };
 
   const handleLocateEquipment = (tagId: string, name: string) => {
-    const equipment = {
-      tag_id: tagId,
-      name: name,
-      location: {
-        floor_physical: Math.floor(Math.random() * 15) + 1,
-        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-        is_exact: true
-      }
-    };
-
-    showEquipmentIframe(name, [equipment]);
+    const eqp = equipment.find(e => e.tagId === tagId);
+    if (eqp) {
+      const eqpLocation = [
+        {
+          tag_id: eqp.tagId,
+          name: eqp.name,
+          location: {
+            floor_physical: eqp.floor_physical,
+            xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+            is_exact: true
+          }
+        }
+      ];
+      showEquipmentIframe(name, eqpLocation);
+    }
   };
 
   const showEquipmentIframe = (title: string, equipment: Array<object>) => {
@@ -83,12 +114,12 @@ const EquipmentView = () => {
 
   const handleLocateGroup = (groupId: string, groupName: string) => {
     const groupEquipment = equipment
-      .filter(eq => eq.groups.includes(groupId))
+      .filter(eq => eq.groups.includes(groupId) && eq.floor_physical)
       .map(eq => ({
         tag_id: eq.tagId,
         name: eq.name,
         location: {
-          floor_physical: Math.floor(Math.random() * 15) + 1,
+          floor_physical: eq.floor_physical,
           xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
           is_exact: true
         }
@@ -127,14 +158,14 @@ const EquipmentView = () => {
                 placeholder="Select groups..."
               />
               </div>
-              <div className="col-span-1 text-right">
+              {item.floor_physical && (<div className="col-span-1 text-right">
                 <button
                   onClick={() => handleLocateEquipment(item.tagId, item.name)}
                   className="text-gray-400 hover:text-cyan-500"
                 >
                   <MapPin size={18} />
                 </button>
-              </div>
+              </div> )}
             </div>
           </div>
         ))}

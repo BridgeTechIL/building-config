@@ -21,34 +21,20 @@ const WorkersView = () => {
   fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
     .then(response => response.json())
     .then(data => {
+      const parsedGroups = data.worker_groups.map((group: any) => ({
+        id: group.id.toString(),
+        name: group.name,
+      }));
+      setWorkerGroups(parsedGroups);
+
       const parsedWorkers = data.peeps.map((person: any) => ({
         tagId: person.id.toString(),
         floor_physical: person.floor,
-        name: `${person.first_name === 'N/A' ? 'Anon' : person.first_name} ${person.last_name === 'N/A' ? 'Anon' : person.last_name}`,
-        role: person.trade,
-        groups: Array.from(new Set([person.trade, person.company])),
+        name: person.name? person.name : 'Unnamed Worker',
+        role: person.trade? person.trade : 'Unknown',
+        groups: person.groups.map((g: any) => g.toString()),
       }));
       setWorkers(parsedWorkers);
-
-      const parsedGroups = data.peeps.reduce((acc: WorkerGroup[], person: any) => {
-        if (!acc.find(group => group.id === person.trade)) {
-          acc.push({
-            id: person.trade,
-            name: person.trade,
-            description: ''
-          });
-        }
-        if (!acc.find(group => group.id === person.company)) {
-          acc.push({
-            id: person.company,
-            name: person.company,
-            description: ''
-          });
-        }
-        return acc;
-
-      }, []);
-      setWorkerGroups(parsedGroups);
 
     })
     .catch(error => console.error('Error fetching workers:', error));
@@ -128,7 +114,7 @@ const WorkersView = () => {
     if (group) {
       // Find all workers in this group
       const groupWorkers = workers
-        .filter(w => w.groups.includes(group.id))
+        .filter(w => w.groups.includes(group.id) && w.floor_physical)
         .map(worker => ({
           tag_id: worker.tagId,
           name: worker.name,
@@ -175,14 +161,16 @@ const WorkersView = () => {
                 placeholder="Select groups..."
               />
               </div>
-              <div className="col-span-1 text-right">
-                <button
-                  onClick={() => handleLocateWorker(worker.tagId)}
-                  className="text-gray-400 hover:text-cyan-500"
-                >
-                  <MapPin size={18} />
-                </button>
-              </div>
+{worker.floor_physical && (
+  <div className="col-span-1 text-right">
+    <button
+      onClick={() => handleLocateWorker(worker.tagId)}
+      className="text-gray-400 hover:text-cyan-500"
+    >
+      <MapPin size={18} />
+    </button>
+  </div>
+)}
             </div>
           </div>
         ))}
@@ -234,7 +222,7 @@ const WorkersView = () => {
                   onClick={() => handleLocateGroup(group.name)}
                   className="text-gray-400 hover:text-cyan-500 flex items-center"
                 >
-                  <MapPin size={18} /> Show Locations 
+                  <MapPin size={18} /> Show Locations
                   
                 </button>
                 <button
