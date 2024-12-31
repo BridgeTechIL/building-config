@@ -8,8 +8,8 @@ export interface ProjectBasicInfo {
 export interface Zone {
   id: string;
   name: string;
-  isWifiPoint: boolean;
-  isDangerPoint: boolean;
+  isWifi: boolean;
+  isDanger: boolean;
   gateId?: string;
   location: {
     floor_physical: number;

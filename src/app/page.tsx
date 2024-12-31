@@ -34,45 +34,6 @@ interface BuildingItems {
   };
 }
 
-// Initial zones data
-const initialZones = [
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 4, xy: [50, 25], is_exact: true } },
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 5, xy: [50, 25], is_exact: true } },
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 6, xy: [50, 25], is_exact: true } },
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 7, xy: [50, 25], is_exact: true } },
-  { name: 'דירה 1', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 25], is_exact: true } },
-  { name: 'דירה 2', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 75], is_exact: true } },
-  { name: 'דירה 3', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 25], is_exact: true } },
-  { name: 'דירה 4', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 75], is_exact: true } },
-
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 25], is_exact: true } },
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 75], is_exact: true } },
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 25], is_exact: true } },
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 75], is_exact: true } },
-
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 23, xy: [75, 75], is_exact: true } },
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 22, xy: [75, 75], is_exact: true } },
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 21, xy: [75, 75], is_exact: true } },
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 20, xy: [75, 75], is_exact: true } },
-
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 25], is_exact: true } },
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 25], is_exact: true } },
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 25], is_exact: true } },
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 25], is_exact: true } },
-
-]
 
 export default function Home() {
   const searchParams = useSearchParams(); // Access search params
@@ -107,13 +68,40 @@ useEffect(() => {
     fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
         .then(response => response.json())
         .then(data => {
+
+          const fetchedZones = data.zones.map((zone: any) => ({
+            id: zone.box_id.toString(),
+            gateId: zone.box_id,
+            name: zone.display_name,
+            isDanger: zone.is_danger,
+            isWifi: false,
+            location: {
+              floor_physical: zone.floor_physical,
+              xy: [zone.location_x, zone.location_y],
+              is_exact: true
+            }
+          }));
+
+          const wifiZones = data.access_points.map((ap: any) => ({
+            id: ap.id.toString(),
+            gateId: ap.id,
+            name: 'Access Point',
+            isDanger: false,
+            isWifi: true,
+            location: {
+              floor_physical: ap.floor_physical,
+              xy: [ap.location_x, ap.location_y],
+              is_exact: true
+            }
+          }));
+
           const fetchedFloors = Object.entries(data.floor_names).map(([key, value]) => ({
             id: String(value),
             level: parseInt(key, 10),
             selected: false,
             isBase: key === "0",
             items: {...defaultItems},
-            zones: []
+            zones: [...fetchedZones.filter((zone: any) => zone.location.floor_physical === parseInt(key, 10)), ...wifiZones.filter((zone: any) => zone.location.floor_physical === parseInt(key, 10))]
           }));
           setFloors(fetchedFloors);
           setFloorNames(data.floor_names);
@@ -131,8 +119,8 @@ useEffect(() => {
     const newZone: Zone = {
       id: `zone_${Date.now()}`,
       name: `Zone ${floor.zones.length + 1}`,
-      isWifiPoint: false,
-      isDangerPoint: false,
+      isWifi: false,
+      isDanger: false,
       gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
       location: {
         floor_physical: floor.level,
@@ -148,7 +136,6 @@ useEffect(() => {
     );
 
     setFloors(updatedFloors);
-    updateIframeZones(updatedFloors);
   };
 
   const handleRemoveZone = (floorId: string, zoneId: string) => {
@@ -184,8 +171,8 @@ useEffect(() => {
         const iframeZones = updatedFloors.flatMap(floor =>
           floor.zones.map(zone => ({
             name: zone.name,
-            is_wifi: zone.isWifiPoint,      // Convert to iframe format
-            is_dangerous: zone.isDangerPoint, // Convert to iframe format
+            is_wifi: zone.isWifi,      // Convert to iframe format
+            is_dangerous: zone.isDanger, // Convert to iframe format
             location: zone.location
           }))
         );
@@ -203,8 +190,8 @@ useEffect(() => {
         const iframeZones = updatedFloors.flatMap(floor =>
           floor.zones.map(zone => ({
             name: zone.name,
-            is_wifi: zone.isWifiPoint,
-            is_dangerous: zone.isDangerPoint,
+            is_wifi: zone.isWifi,
+            is_dangerous: zone.isDanger,
             location: zone.location
           }))
         );
@@ -367,6 +354,7 @@ useEffect(() => {
 
                 if (typeof contentWindow.updateFloors === 'function') {
                   contentWindow.updateFloors();
+                  updateIframeZones(floors);
                 }
 
                 if (typeof contentWindow.addCameras === 'function') {

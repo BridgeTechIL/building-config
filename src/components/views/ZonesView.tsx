@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, Plus, Camera, Wifi, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Plus, Camera, Trash2, AlertTriangle } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -18,20 +18,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import CameraModal from '../modals/CameraModal';
-import { Floor } from '@/types/building';
+import {Floor, Zone} from '@/types/building';
 
-interface Zone {
-  id: string;
-  name: string;
-  isWifiPoint: boolean;
-  isDangerPoint: boolean;
-  gateId?: string;
-  location: {
-    floor_physical: number;
-    xy: [number, number];
-    is_exact: boolean;
-  };
-}
 
 
 interface ZoneFloorItemProps {
@@ -109,19 +97,12 @@ function ZoneFloorItem({
             Floor {floor.id}
           </span>
           <span className="text-sm text-gray-500">
-            {floor.zones.length} Zones
+            {floor.zones.filter(zone => !zone.isWifi).length} Zones
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => onAddZone(floor.id)}
-              className="flex items-center gap-1 text-cyan-500 hover:text-cyan-600 px-3 py-2"
-            >
-              <Plus size={18} />
-              Add Zone
-            </button>
             <button
               onClick={() => setIsCameraModalOpen(true)}
               className="flex items-center gap-1 text-cyan-500 hover:text-cyan-600 px-3 py-2"
@@ -144,28 +125,26 @@ function ZoneFloorItem({
         <>
           <div className="h-px bg-gray-100 mx-4" />
           <div className="p-4">
-            {floor.zones.length === 0 ? (
+            {floor.zones.filter(zone => !zone.isWifi).length === 0 ? (
               <div className="text-center text-gray-500 py-8">
-                No zones defined. Click Add Zone to create one.
+                No zones defined.
               </div>
             ) : (
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-12 gap-4 text-sm text-gray-500 font-medium mb-4">
                   <div className="col-span-5">NAME</div>
                   <div className="col-span-2">GATE ID</div>
-                  <div className="col-span-2">WIFI</div>
                   <div className="col-span-2">DANGER</div>
-                  <div className="col-span-1"></div>
                 </div>
                 <div className="space-y-3">
-                  {floor.zones.map((zone) => (
-                    <div key={zone.id} className="grid grid-cols-12 gap-4 items-center border-b border-gray-200 last:border-0 pb-3 last:pb-0">
+                  {floor.zones.filter(zone => !zone.isWifi).map(zone => (
+                    <div key={zone.id} className="grid grid-cols-12 gap-4 items-center border-b border-gray-00 last:border-0 pb-3 last:pb-0">
                       <div className="col-span-5">
                         <input
                           type="text"
                           value={zone.name}
                           onChange={(e) => onUpdateZone(floor.id, zone.id, { name: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white"
+                          className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white text-gray-800"
                           placeholder="Zone name"
                         />
                       </div>
@@ -174,26 +153,10 @@ function ZoneFloorItem({
                       </div>
                       <div className="col-span-2">
                         <button
-                          onClick={() => onUpdateZone(floor.id, zone.id, { isWifiPoint: !zone.isWifiPoint })}
-                          className={`p-2 rounded-md ${zone.isWifiPoint ? 'text-cyan-500 bg-white' : 'text-gray-400 bg-white'}`}
-                        >
-                          <Wifi size={18} />
-                        </button>
-                      </div>
-                      <div className="col-span-2">
-                        <button
-                          onClick={() => onUpdateZone(floor.id, zone.id, { isDangerPoint: !zone.isDangerPoint })}
-                          className={`p-2 rounded-md ${zone.isDangerPoint ? 'text-red-500 bg-white' : 'text-gray-400 bg-white'}`}
+                          onClick={() => onUpdateZone(floor.id, zone.id, { isDanger: !zone.isDanger })}
+                          className={`p-2 rounded-md ${zone.isDanger ? 'text-red-500 bg-white' : 'text-gray-400 bg-white'}`}
                         >
                           <AlertTriangle size={18} />
-                        </button>
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <button
-                          onClick={() => onRemoveZone(floor.id, zone.id)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 size={18} />
                         </button>
                       </div>
                     </div>
