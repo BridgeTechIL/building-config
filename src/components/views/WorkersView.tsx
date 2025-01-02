@@ -24,6 +24,7 @@ const WorkersView = () => {
       const parsedGroups = data.worker_groups.map((group: any) => ({
         id: group.id.toString(),
         name: group.name,
+        description: group.description,
       }));
       setWorkerGroups(parsedGroups);
 
