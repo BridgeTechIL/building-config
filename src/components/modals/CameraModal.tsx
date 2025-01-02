@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { floorCameras } from '@/config/cameras';
 import { Floor } from '@/types/building';
 
 interface CameraModalProps {
@@ -8,11 +7,12 @@ interface CameraModalProps {
   onClose: () => void;
   floor: Floor;
   floors: Floor[];
+  cams: Record<string, string[]>;
 }
 
-const CameraModal = ({ isOpen, onClose, floor, floors }: CameraModalProps) => {
+const CameraModal = ({ isOpen, onClose, floor, floors, cams }: CameraModalProps) => {
   const [currentFloorIndex, setCurrentFloorIndex] = useState(
-    floors.findIndex(f => f.id === floor.id)
+    floors.findIndex(f => f.level.toString() === floor.level.toString())
   );
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
 
@@ -21,14 +21,14 @@ const CameraModal = ({ isOpen, onClose, floor, floors }: CameraModalProps) => {
   }, [currentFloorIndex]);
 
   const currentFloor = floors[currentFloorIndex];
-  const cameras = floorCameras[currentFloor.id] || [];
+  const cameras = cams[currentFloor.level.toString()] || [];
 
   const handlePrevious = () => {
     if (currentCameraIndex > 0) {
       setCurrentCameraIndex(prev => prev - 1);
     } else if (currentFloorIndex > 0) {
       const prevFloor = floors[currentFloorIndex - 1];
-      const prevFloorCameras = floorCameras[prevFloor.id] || [];
+      const prevFloorCameras = cams[prevFloor.level.toString()] || [];
       setCurrentFloorIndex(prev => prev - 1);
       setCurrentCameraIndex(prevFloorCameras.length - 1);
     }
@@ -52,7 +52,7 @@ const CameraModal = ({ isOpen, onClose, floor, floors }: CameraModalProps) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-[800px] max-w-[90vw]">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold text-gray-500">
             {`Floor ${currentFloor.id}`} Cameras
           </h2>
           <div className="flex items-center gap-4">
@@ -72,7 +72,7 @@ const CameraModal = ({ isOpen, onClose, floor, floors }: CameraModalProps) => {
           <div className="relative w-full flex justify-center mb-4">
             <div className="relative">
               <iframe
-                key={`${currentFloor.id}-${cameras[currentCameraIndex]}`}
+                key={`${currentFloor.level.toString()}-${cameras[currentCameraIndex]}`}
                 src={cameras[currentCameraIndex]}
                 width="385"
                 height="270"

@@ -10,6 +10,7 @@ import SensorsView from '../views/SensorsView';
 interface ProjectManagementProps {
   onExport: () => Promise<void>;
   floors: Floor[];
+  cams: Record<string, string[]>;
   onUpdateFloorOrder: (newOrder: Floor[]) => void;
   onAddZone: (floorId: string) => void;
   onRemoveZone: (floorId: string, zoneId: string) => void;
@@ -18,7 +19,8 @@ interface ProjectManagementProps {
 }
 
 const ProjectManagement = ({ 
-  floors, 
+  floors,
+  cams,
   onUpdateFloorOrder,
   onUpdateFloor 
 }: ProjectManagementProps) => {
@@ -38,8 +40,8 @@ const ProjectManagement = ({
     const newZone: Zone = {
       id: `zone_${Date.now()}`,
       name: `Zone ${floor.zones.length + 1}`,
-      isWifiPoint: false,
-      isDangerPoint: false,
+      isWifi: false,
+      isDanger: false,
       gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
       location: {
         floor_physical: floor.level,
@@ -78,7 +80,8 @@ const ProjectManagement = ({
       case 'area1':
         return (
           <ZonesView 
-            floors={floors} 
+            floors={floors}
+            cams={cams}
             onUpdateOrder={onUpdateFloorOrder}
             onAddZone={handleAddZone}
             onRemoveZone={handleRemoveZone}

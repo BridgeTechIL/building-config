@@ -25,6 +25,7 @@ import {Floor, Zone} from '@/types/building';
 interface ZoneFloorItemProps {
   floor: Floor;
   floors: Floor[];
+  cams: Record<string, string[]>;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
   onAddZone: (floorId: string) => void;
@@ -34,6 +35,7 @@ interface ZoneFloorItemProps {
 
 interface ZonesViewProps {
   floors: Floor[];
+  cams: Record<string, string[]>;
   onUpdateOrder: (newOrder: Floor[]) => void;
   onAddZone: (floorId: string) => void;
   onRemoveZone: (floorId: string, zoneId: string) => void;
@@ -43,6 +45,7 @@ interface ZonesViewProps {
 function ZoneFloorItem({
   floor,
   floors,
+  cams,
   isExpanded,
   onToggleExpand,
   onAddZone,
@@ -104,25 +107,30 @@ function ZoneFloorItem({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCameraModalOpen(true)}
-              className="flex items-center gap-1 text-cyan-500 hover:text-cyan-600 px-3 py-2"
+                onClick={() => setIsCameraModalOpen(true)}
+                disabled={(cams[floor.level] || []).length === 0}
+                className={`flex items-center gap-1 px-3 py-2 ${
+                    (cams[floor.level] || []).length > 0
+                        ? 'text-cyan-500 hover:text-cyan-600 cursor-pointer'
+                        : 'text-gray-300 cursor-not-allowed'
+                }`}
             >
-              <Camera size={18} />
+              <Camera size={18}/>
               View Cameras
             </button>
             <button
-              onClick={() => handleToggle(floor.id)}
-              className="flex items-center gap-1 text-gray-600 hover:text-gray-800 px-3 py-2"
+                onClick={() => handleToggle(floor.id)}
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-800 px-3 py-2"
             >
               {isExpanded ? "Hide zones" : "View zones"}
-              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              {isExpanded ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
             </button>
           </div>
         </div>
       </div>
 
       {isExpanded && (
-        <>
+          <>
           <div className="h-px bg-gray-100 mx-4" />
           <div className="p-4">
             {floor.zones.filter(zone => !zone.isWifi).length === 0 ? (
@@ -174,6 +182,7 @@ function ZoneFloorItem({
           onClose={() => setIsCameraModalOpen(false)}
           floor={floor}
           floors={floors}
+          cams={cams}
         />
       )}
     </div>
@@ -182,6 +191,7 @@ function ZoneFloorItem({
 
 export default function ZonesView({
   floors,
+  cams,
   onUpdateOrder,
   onAddZone,
   onRemoveZone,
@@ -234,6 +244,7 @@ export default function ZonesView({
               key={floor.id}
               floor={floor}
               floors={floors}
+              cams={cams}
               isExpanded={expandedFloorId === floor.id}
               onToggleExpand={handleToggleExpand}
               onAddZone={onAddZone}

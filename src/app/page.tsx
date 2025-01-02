@@ -62,6 +62,8 @@ export default function Home() {
   // Modified floors state initialization
 const [floors, setFloors] = useState<Floor[]>([]);
 const [floorNames, setFloorNames] = useState<Floor[]>([]);
+const [cameras, setCameras] = useState<[]>([]);
+const [cams, setCams] = useState<{}>({});
 useEffect(() => {
 
   if (projectId) {
@@ -105,6 +107,29 @@ useEffect(() => {
           }));
           setFloors(fetchedFloors);
           setFloorNames(data.floor_names);
+
+          const cameras = data.cameras.map((cam: any) => ({
+            name: cam.display_name,
+            streamUrl: cam.stream_url,
+            location: {
+              floor_physical: cam.floor_physical,
+              xy: [cam.location_x, cam.location_y],
+              is_exact: true
+            }
+          }));
+          setCameras(cameras);
+
+
+          const fetchedCameras = Object.keys(data.floor_names).reduce((acc: any, floorId: string) => {
+            acc[floorId] = data.cameras
+              .filter((cam: any) => cam.floor_physical.toString() === floorId)
+              .map((cam: any) => cam.stream_url);
+            return acc;
+          }, {});
+
+          // Update cams object
+          setCams(fetchedCameras)
+
         })
         .catch(error => console.error('Error fetching floors:', error));
   }}, []);
@@ -357,13 +382,8 @@ useEffect(() => {
                   updateIframeZones(floors);
                 }
 
-                if (typeof contentWindow.addCameras === 'function') {
-                  const cams = [
-                    { name: 'Left', streamUrl: 'https://player.castr.com/live_094d9a001ee811eda8c7d91f796d7ea9', location: { floor_physical: 1, xy: [70, 25], is_exact: true } },
-                    { name: 'Right', streamUrl: 'https://player.castr.com/live_0f4235e0186e11edaba527aa44cc5f75', location: { floor_physical: 5, xy: [35, 50], is_exact: true } },
-                    { name: 'Lobby', streamUrl: 'https://player.castr.com/live_4aff5df0551411edb095b3325e745ec8', location: { floor_physical: 3, xy: [5, 5], is_exact: true } },
-                  ]
-                  contentWindow.addCameras(cams);
+                if (typeof contentWindow.addCameras === 'function' && cameras.length > 0) {
+                  contentWindow.addCameras(cameras);
                 }
               }
             }}
@@ -408,6 +428,7 @@ useEffect(() => {
             <ProjectManagement
               onExport={handleExport}
               floors={floors}
+              cams={cams}
               onUpdateFloorOrder={updateFloorOrder}
               onAddZone={handleAddZone}        // Add this
               onRemoveZone={handleRemoveZone}  // Add this

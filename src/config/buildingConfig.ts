@@ -129,8 +129,8 @@ export const buildingCameras: ModelCamera[] = [
 export function convertToModelZone(zone: Zone, location: ModelLocation): ModelZone {
     return {
         name: zone.name,
-        isWifiPoint: zone.isWifiPoint,
-        isDangerPoint: zone.isDangerPoint,
+        isWifi: zone.isWifi,
+        isDanger: zone.isDanger,
         gateId: zone.gateId,
         location
     };
@@ -150,8 +150,8 @@ export function convertZonesForModel(zones: Zone[]): ModelZone[] {
 export function prepareZonesForModel(zones: Zone[]): Model3DZone[] {
     return convertZonesForModel(zones).map(zone => ({
         name: zone.name,
-        is_wifi: zone.isWifiPoint,
-        is_dangerous: zone.isDangerPoint,
+        is_wifi: zone.isWifi,
+        is_dangerous: zone.isDanger,
         location: zone.location
     }));
 }
