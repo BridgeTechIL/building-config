@@ -30,7 +30,7 @@ interface ZoneFloorItemProps {
   onToggleExpand: (id: string) => void;
   onAddZone: (floorId: string) => void;
   onRemoveZone: (floorId: string, zoneId: string) => void;
-  onUpdateZone: (floorId: string, zoneId: string, updates: Partial<Zone>) => void;
+  onUpdateZone: (floor: number, zoneId: string, updates: Partial<Zone>) => void;
 }
 
 interface ZonesViewProps {
@@ -39,7 +39,7 @@ interface ZonesViewProps {
   onUpdateOrder: (newOrder: Floor[]) => void;
   onAddZone: (floorId: string) => void;
   onRemoveZone: (floorId: string, zoneId: string) => void;
-  onUpdateZone: (floorId: string, zoneId: string, updates: Partial<Zone>) => void;
+  onUpdateZone: (floor: number, zoneId: string, updates: Partial<Zone>) => void;
 }
 
 function ZoneFloorItem({
@@ -151,7 +151,7 @@ function ZoneFloorItem({
                         <input
                           type="text"
                           value={zone.name}
-                          onChange={(e) => onUpdateZone(floor.id, zone.id, { name: e.target.value })}
+                          onChange={(e) => onUpdateZone(floor.level, zone.id, { name: e.target.value })}
                           className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white text-gray-800"
                           placeholder="Zone name"
                         />
@@ -161,7 +161,7 @@ function ZoneFloorItem({
                       </div>
                       <div className="col-span-2">
                         <button
-                          onClick={() => onUpdateZone(floor.id, zone.id, { isDanger: !zone.isDanger })}
+                          onClick={() => onUpdateZone(floor.level, zone.id, { isDanger: !zone.isDanger })}
                           className={`p-2 rounded-md ${zone.isDanger ? 'text-red-500 bg-white' : 'text-gray-400 bg-white'}`}
                         >
                           <AlertTriangle size={18} />

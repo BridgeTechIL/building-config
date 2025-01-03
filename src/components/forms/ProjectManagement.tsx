@@ -14,7 +14,7 @@ interface ProjectManagementProps {
   onUpdateFloorOrder: (newOrder: Floor[]) => void;
   onAddZone: (floorId: string) => void;
   onRemoveZone: (floorId: string, zoneId: string) => void;
-  onUpdateZone: (floorId: string, zoneId: string, updates: Partial<Zone>) => void;
+  onUpdateZone: (floor: number, zoneId: string, updates: Partial<Zone>) => void;
   onUpdateFloor: (floorId: string, updates: Partial<Floor>) => void;
 }
 
@@ -64,17 +64,6 @@ const ProjectManagement = ({
 
     onUpdateFloor(floorId, {
       zones: floor.zones.filter(z => z.id !== zoneId)
-    });
-  };
-
-  const handleUpdateZone = (floorId: string, zoneId: string, updates: Partial<Zone>) => {
-    const floor = floors.find(f => f.id === floorId);
-    if (!floor) return;
-
-    onUpdateFloor(floorId, {
-      zones: floor.zones.map(zone => 
-        zone.id === zoneId ? { ...zone, ...updates } : zone
-      )
     });
   };
 

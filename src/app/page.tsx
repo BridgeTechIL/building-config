@@ -72,7 +72,7 @@ useEffect(() => {
         .then(data => {
 
           const fetchedZones = data.zones.map((zone: any) => ({
-            id: zone.box_id.toString(),
+            id: zone.id.toString(),
             gateId: zone.box_id,
             name: zone.display_name,
             isDanger: zone.is_danger,
@@ -176,9 +176,37 @@ useEffect(() => {
     updateIframeZones(updatedFloors);
   };
 
-  const handleUpdateZone = (floorId: string, zoneId: string, updates: Partial<Zone>) => {
+function updateDB(projectId: string, itemName: string, itemId: number, column: string, value: any) {
+  fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      projectId,
+      itemName,
+      itemId,
+      column,
+      value,
+    }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Item updated successfully:', data);
+  })
+  .catch(error => {
+    console.error('Error updating item:', error);
+  });
+}
+
+  const handleUpdateZone = (floor: number, zoneId: string, updates: Partial<Zone>) => {
+    if (projectId) {
+      const key = Object.keys(updates)[0];
+      const value = Object.values(updates)[0];
+      updateDB(projectId, 'zones', parseInt(zoneId, 10), key, value);
+    }
     const updatedFloors = floors.map(f =>
-      f.id === floorId
+      f.level === floor
         ? {
           ...f,
           zones: f.zones.map(z =>
