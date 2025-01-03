@@ -18,7 +18,7 @@ const WorkersView = () => {
   const projectId = searchParams.get('project_id'); // Get the "project_id" param
 
   useEffect(() => {
-  fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
+  fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
     .then(response => response.json())
     .then(data => {
       const parsedGroups = data.worker_groups.map((group: any) => ({

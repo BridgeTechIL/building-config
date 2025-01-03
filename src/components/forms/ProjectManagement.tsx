@@ -22,6 +22,9 @@ const ProjectManagement = ({
   floors,
   cams,
   onUpdateFloorOrder,
+  onAddZone,
+  onRemoveZone,
+  onUpdateZone,
   onUpdateFloor 
 }: ProjectManagementProps) => {
   const [activeArea, setActiveArea] = React.useState('area1');
@@ -83,9 +86,9 @@ const ProjectManagement = ({
             floors={floors}
             cams={cams}
             onUpdateOrder={onUpdateFloorOrder}
-            onAddZone={handleAddZone}
-            onRemoveZone={handleRemoveZone}
-            onUpdateZone={handleUpdateZone}
+            onAddZone={onAddZone}
+            onRemoveZone={onRemoveZone}
+            onUpdateZone={onUpdateZone}
           />
         );
       case 'area2':

@@ -166,6 +166,7 @@
             let scene, camera, renderer, controls, raycaster, mouse;
             window.activeFloorGroup = null;
             let isAnimating = false;
+            let extendedFloor = null;
             let totalFloors = 25;
             const buildingWidth = 30;
             const buildingDepth = 16;
@@ -283,6 +284,7 @@
                   opacity: 0.4
                 });
                 const zoneMesh = new THREE.Mesh(zoneGeometry, material);
+                zoneMesh.name = `zone-${name}`;
                 const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
                 let finalX = worldCoords.x;
                 let finalZ = worldCoords.z;
@@ -294,7 +296,16 @@
 
                 const y = floor_physical * floorHeight + (floorHeight / 2);
                 zoneMesh.position.set(finalX, y, finalZ);
-                scene.add(zoneMesh);
+                if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                    window.activeFloorGroup.add(zoneMesh);
+                    let clone = zoneMesh.clone();
+                    clone.visible = false
+                    scene.add(clone);
+                    currentZones.push(clone);
+                    window.activeFloorGroup.originalComponents.push(clone);
+                } else {
+                    scene.add(zoneMesh);
+                }
                 currentZones.push(zoneMesh);
             }
 
@@ -784,6 +795,7 @@
 
                             scene.remove(currentGroup);
                             window.activeFloorGroup = null;
+                            window.extendedFloor = null;
 
                             if (floorNumber !== null) {
                                 setTimeout(() => {
@@ -822,6 +834,9 @@
                         child.visible = false;
                         clone.position.sub(new THREE.Vector3(0, floorY, 0));
                         floorGroup.add(clone);
+                        if (child.name && child.name.includes('zone')) {
+                            currentZones.push(clone);
+                        }
 
                         if (child.children.length > 0) {
                             child.children.forEach(childObj => {
@@ -839,6 +854,7 @@
                 window.activeFloorGroup.originalComponents = scene.children.filter(child =>
                     isInFloorRange(child.position)
                 );
+                window.extendedFloor = floorNumber;
 
                 const slideDistance = buildingWidth * -1.5;
                 let startTime = null;
@@ -1530,7 +1546,11 @@
 
             window.showZones = function(zones) {
                 currentZones.forEach(item => {
-                    scene.remove(item);
+                    if (item.parent) {
+                        item.parent.remove(item);
+                    } else {
+                        scene.remove(item);
+                    }
                 });
                 currentZones = [];
                 zones.forEach(zone => {

@@ -38,7 +38,7 @@ interface BuildingItems {
 export default function Home() {
   const searchParams = useSearchParams(); // Access search params
   const projectId = searchParams.get('project_id'); // Get the "project_id" param
-  const [step, setStep] = useState(1)
+  const [step, setStep] = projectId? useState(4) : useState(1);
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
@@ -67,7 +67,7 @@ const [cams, setCams] = useState<{}>({});
 useEffect(() => {
 
   if (projectId) {
-    fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}&names=true`)
+    fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
         .then(response => response.json())
         .then(data => {
 
@@ -129,6 +129,8 @@ useEffect(() => {
 
           // Update cams object
           setCams(fetchedCameras)
+
+          initializeIframeData(fetchedFloors, data.floor_names, cameras);
 
         })
         .catch(error => console.error('Error fetching floors:', error));
@@ -348,6 +350,34 @@ useEffect(() => {
     }));
   };
 
+  function initializeIframeData(floors: Floor[], floorNames: Floor[], cameras: Array<object>) {
+    console.log('Initializing iframe data');
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+
+      const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void } & { updateFloorNames?: (names: Array<object>) => void };
+      const iframeDocument = contentWindow.document;
+      const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
+      if (floorAmount) {
+        floorAmount.value = String(floors.length);
+      }
+
+      if (typeof contentWindow.updateFloorNames === 'function') {
+        contentWindow.updateFloorNames(floorNames);
+      }
+      iframe.hidden = false;
+
+      if (typeof contentWindow.updateFloors === 'function') {
+        contentWindow.updateFloors();
+        updateIframeZones(floors);
+      }
+
+      if (typeof contentWindow.addCameras === 'function' && cameras.length > 0) {
+        contentWindow.addCameras(cameras);
+      }
+    }
+  }
+
   return (
     <div className="flex h-screen bg-white">
       {step < 4 ? (
@@ -363,30 +393,7 @@ useEffect(() => {
             src="/buildingModel.html"
             width="100%"
             height="100%"
-            onLoad={() => {
-              const iframe = document.querySelector('iframe');
-              if (iframe && iframe.contentWindow) {
-                const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void } & { updateFloorNames?: (names: Array<object>) => void };
-                const iframeDocument = contentWindow.document;
-                const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
-                if (floorAmount) {
-                  floorAmount.value = String(floors.length);
-                }
-
-                if (typeof contentWindow.updateFloorNames === 'function') {
-                  contentWindow.updateFloorNames(floorNames);
-                }
-
-                if (typeof contentWindow.updateFloors === 'function') {
-                  contentWindow.updateFloors();
-                  updateIframeZones(floors);
-                }
-
-                if (typeof contentWindow.addCameras === 'function' && cameras.length > 0) {
-                  contentWindow.addCameras(cameras);
-                }
-              }
-            }}
+            hidden
           ></iframe>
         </div>
       )}
@@ -443,13 +450,13 @@ useEffect(() => {
             />
           )}
         </div>
-        <Footer 
+        {step < 4 && (<Footer
           step={step} 
           setStep={handleStepChange} 
           canProgress={step === 1 ? projectData.name.trim() !== '' : true}
           status={projectData.status}
           onExport={handleExport}
-        />
+        /> )}
       </div>
     </div>
   );
