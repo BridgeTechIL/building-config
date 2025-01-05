@@ -1,5 +1,6 @@
 // config/workers.ts
 export interface Worker {
+  id: string;
   tagId: string;
   name: string;
   role: string;
@@ -44,6 +45,7 @@ export const workerGroups: WorkerGroup[] = [
 
 export const workers: Worker[] = [
   {
+    id: '1',
     tagId: 'TAG001',
     name: 'John Smith',
     role: 'Construction Laborer',
@@ -51,6 +53,7 @@ export const workers: Worker[] = [
     groups: ['group1']
   },
   {
+    id: '2',
     tagId: 'TAG002',
     name: 'Emily Rodriguez',
     role: 'Site Supervisor',
@@ -58,6 +61,7 @@ export const workers: Worker[] = [
     groups: ['group2']
   },
   {
+    id: '3',
     tagId: 'TAG003',
     name: 'Michael Chen',
     role: 'Electrician',
@@ -65,6 +69,7 @@ export const workers: Worker[] = [
     groups: ['group3']
   },
   {
+    id: '4',
     tagId: 'TAG004',
     name: 'Sarah Johnson',
     role: 'Crane Operator',
@@ -72,6 +77,7 @@ export const workers: Worker[] = [
     groups: ['group4']
   },
   {
+    id: '5',
     tagId: 'TAG005',
     name: 'David Kim',
     role: 'Safety Inspector',
@@ -79,6 +85,7 @@ export const workers: Worker[] = [
     groups: ['group5']
   },
   {
+    id: '6',
     tagId: 'TAG006',
     name: 'Anna Petrova',
     role: 'Construction Worker',
@@ -86,6 +93,7 @@ export const workers: Worker[] = [
     groups: ['group1', 'group5']
   },
   {
+    id: '7',
     tagId: 'TAG007',
     name: 'Robert Garcia',
     role: 'Electrical Supervisor',
@@ -93,6 +101,7 @@ export const workers: Worker[] = [
     groups: ['group2', 'group3']
   },
   {
+    id: '8',
     tagId: 'TAG008',
     name: 'Lisa Wong',
     role: 'Crane Safety Specialist',
@@ -100,6 +109,7 @@ export const workers: Worker[] = [
     groups: ['group4', 'group5']
   },
   {
+    id: '9',
     tagId: 'TAG009',
     name: 'Ahmed Hassan',
     role: 'General Contractor',
@@ -107,6 +117,7 @@ export const workers: Worker[] = [
     groups: ['group1', 'group2']
   },
   {
+    id: '10',
     tagId: 'TAG010',
     name: 'Maria Silva',
     role: 'Construction Manager',

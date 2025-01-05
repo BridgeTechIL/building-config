@@ -1,310 +1,343 @@
 import React, {useEffect, useState} from 'react';
-import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin } from 'lucide-react';
-import { Worker, WorkerGroup } from '@/config/workers';
-import { MultiSelect } from '@/components/ui/MultiSelect';
+import {ChevronDown, ChevronUp, Plus, Trash2, GripVertical, MapPin} from 'lucide-react';
+import {Worker, WorkerGroup} from '@/config/workers';
+import {MultiSelect} from '@/components/ui/MultiSelect';
 import {useSearchParams} from "next/navigation";
+import {Equipment} from "@/config/equipment";
 
 
 const generateUniqueId = () => {
-  return `G${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
+    return `G${Date.now().toString(36)}${Math.random().toString(36).substr(2, 5)}`;
 };
 
 type ViewMode = 'people' | 'groups';
 
-const WorkersView = () => {
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
-  const searchParams = useSearchParams(); // Access search params
-  const projectId = searchParams.get('project_id'); // Get the "project_id" param
+interface WorkersViewProps {
+    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => void
+}
 
-  useEffect(() => {
-  fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
-    .then(response => response.json())
-    .then(data => {
-      const parsedGroups = data.worker_groups.map((group: any) => ({
-        id: group.id.toString(),
-        name: group.name,
-        description: group.description,
-      }));
-      setWorkerGroups(parsedGroups);
+const WorkersView = ({updateDB}: WorkersViewProps) => {
+    const [workers, setWorkers] = useState<Worker[]>([]);
+    const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
+    const searchParams = useSearchParams(); // Access search params
+    const projectId = searchParams.get('project_id'); // Get the "project_id" param
 
-      const parsedWorkers = data.peeps.map((person: any) => ({
-        tagId: person.id.toString(),
-        floor_physical: person.floor,
-        name: person.name? person.name : 'Unnamed Worker',
-        role: person.trade? person.trade : 'Unknown',
-        groups: person.groups.map((g: any) => g.toString()),
-      }));
-      setWorkers(parsedWorkers);
+    useEffect(() => {
+        fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
+            .then(response => response.json())
+            .then(data => {
+                const parsedGroups = data.worker_groups.map((group: any) => ({
+                    id: group.id.toString(),
+                    name: group.name,
+                    description: group.description,
+                }));
+                setWorkerGroups(parsedGroups);
 
-    })
-    .catch(error => console.error('Error fetching workers:', error));
-}, []);
+                const parsedWorkers = data.peeps.map((person: any) => ({
+                    id: person.id.toString(),
+                    tagId: person.tag_id.toString(),
+                    floor_physical: person.floor,
+                    name: person.name ? person.name : 'Unnamed Worker',
+                    role: person.trade ? person.trade : 'Unknown',
+                    groups: person.groups.map((g: any) => g.toString()),
+                }));
+                setWorkers(parsedWorkers);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('people');
-  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  const [groupCounter, setGroupCounter] = useState(workerGroups.length);
+            })
+            .catch(error => console.error('Error fetching workers:', error));
+    }, []);
 
-  const handleWorkerUpdate = (tagId: string, updates: Partial<Worker>) => {
-    setWorkers(prev => prev.map(worker => 
-      worker.tagId === tagId ? { ...worker, ...updates } : worker
-    ));
-  };
+    const [viewMode, setViewMode] = useState<ViewMode>('people');
+    const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+    const [groupCounter, setGroupCounter] = useState(workerGroups.length);
 
-  const handleAddGroup = () => {
-    const newGroupId = generateUniqueId();
-    const newGroup: WorkerGroup = {
-      id: newGroupId,
-      name: `Group ${groupCounter + 1}`,
-      description: ''
-    };
-    
-    setWorkerGroups(prev => [...prev, newGroup]);
-    setGroupCounter(prev => prev + 1);
-  };
-
-  const handleDeleteGroup = (groupId: string) => {
-    // Remove the group
-    setWorkerGroups(prev => prev.filter(group => group.id !== groupId));
-    
-    // Remove the group from all workers
-    setWorkers(prev => prev.map(worker => ({
-      ...worker,
-      groups: worker.groups.filter(gId => gId !== groupId)
-    })));
-  };
-
-  const handleGroupUpdate = (groupId: string, updates: Partial<WorkerGroup>) => {
-    setWorkerGroups(prev => 
-      prev.map(group => 
-        group.id === groupId ? { ...group, ...updates } : group
-      )
-    );
-  };
-
-  const showWorkersIframe = (title: string, workers: Array<object>) => {
-    const iframe = document.querySelector('iframe');
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({
-        type: 'SHOW_ITEMS',
-        data: {type: 'ppl', title: title, items: workers},
-      }, '*');
-    }
-  };
-  
-  const handleLocateWorker = (tagId: string) => {
-    const worker = workers.find(w => w.tagId === tagId);
-    if (worker) {
-      const workerLocation = [
-        {
-          tag_id: worker.tagId,
-          name: worker.name,
-          location: {
-            floor_physical: worker.floor_physical,
-            xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-            is_exact: true
-          }
+    const handleWorkerUpdate = (id: string, updates: Partial<Worker>) => {
+        if (projectId) {
+            const key = Object.keys(updates)[0];
+            const value = Object.values(updates)[0];
+            updateDB(projectId,'rename', 'tags', parseInt(id, 10), key, value);
         }
-      ];
-      showWorkersIframe(worker.name, workerLocation);
+        setWorkers(prev => prev.map(worker =>
+            worker.id === id ? {...worker, ...updates} : worker
+        ));
+    };
+
+    const handleGroupChange = (itemId: string, groups: Partial<Equipment>) => {
+        if (projectId) {
+            const key = Object.keys(groups)[0];
+            const value = Object.values(groups)[0];
+            updateDB(projectId,'change_groups', 'groups', parseInt(itemId, 10), key, value);
+        }
+        setWorkers(prev => prev.map(item =>
+            item.id === itemId ? {...item, ...groups} : item
+        ));
     }
-  };
 
-  const handleLocateGroup = (groupName: string) => {
-    const group = workerGroups.find(g => g.name === groupName);
-    if (group) {
-      // Find all workers in this group
-      const groupWorkers = workers
-        .filter(w => w.groups.includes(group.id) && w.floor_physical)
-        .map(worker => ({
-          tag_id: worker.tagId,
-          name: worker.name,
-          location: {
-            floor_physical: worker.floor_physical,
-            xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-            is_exact: true
-          }
-        }));
+    const handleAddGroup = () => {
+        const newGroupId = generateUniqueId();
+        const newGroup: WorkerGroup = {
+            id: newGroupId,
+            name: `Group ${groupCounter + 1}`,
+            description: ''
+        };
 
-      showWorkersIframe(groupName, groupWorkers);
-    }
-  };
+        setWorkerGroups(prev => [...prev, newGroup]);
+        setGroupCounter(prev => prev + 1);
+    };
+
+    const handleDeleteGroup = (groupId: string) => {
+        // Remove the group
+        setWorkerGroups(prev => prev.filter(group => group.id !== groupId));
+
+        // Remove the group from all workers
+        setWorkers(prev => prev.map(worker => ({
+            ...worker,
+            groups: worker.groups.filter(gId => gId !== groupId)
+        })));
+    };
+
+    const handleGroupUpdate = (groupId: string, updates: Partial<WorkerGroup>) => {
+        if (projectId) {
+            const key = Object.keys(updates)[0];
+            const value = Object.values(updates)[0];
+            updateDB(projectId,'rename', 'groups', parseInt(groupId, 10), key, value);
+        }
+        setWorkerGroups(prev =>
+            prev.map(group =>
+                group.id === groupId ? {...group, ...updates} : group
+            )
+        );
+    };
+
+    const showWorkersIframe = (title: string, workers: Array<object>) => {
+        const iframe = document.querySelector('iframe');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+                type: 'SHOW_ITEMS',
+                data: {type: 'ppl', title: title, items: workers},
+            }, '*');
+        }
+    };
+
+    const handleLocateWorker = (tagId: string) => {
+        const worker = workers.find(w => w.tagId === tagId);
+        if (worker) {
+            const workerLocation = [
+                {
+                    tag_id: worker.tagId,
+                    name: worker.name,
+                    location: {
+                        floor_physical: worker.floor_physical,
+                        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+                        is_exact: true
+                    }
+                }
+            ];
+            showWorkersIframe(worker.name, workerLocation);
+        }
+    };
+
+    const handleLocateGroup = (groupName: string) => {
+        const group = workerGroups.find(g => g.name === groupName);
+        if (group) {
+            // Find all workers in this group
+            const groupWorkers = workers
+                .filter(w => w.groups.includes(group.id) && w.floor_physical)
+                .map(worker => ({
+                    tag_id: worker.tagId,
+                    name: worker.name,
+                    location: {
+                        floor_physical: worker.floor_physical,
+                        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+                        is_exact: true
+                    }
+                }));
+
+            showWorkersIframe(groupName, groupWorkers);
+        }
+    };
 
 
-  const renderPeopleView = () => (
-    <div className="bg-gray-50 rounded-lg p-4">
-      <div className="grid grid-cols-12 gap-4 text-sm text-gray-500 font-medium mb-4">
-        <div className="col-span-2">TAG ID</div>
-        <div className="col-span-4">NAME</div>
-        <div className="col-span-5">GROUPS</div>
-        
-      </div>
-        {workers.map((worker) => (
-          <div key={worker.tagId} className="bg-white rounded-lg p-4">
-            <div className="grid grid-cols-12 gap-4 items-center">
-              <div className="col-span-2 text-gray-500">
-                {worker.tagId}
-              </div>
-              <div className="col-span-4">
-                <input
-                  type="text"
-                  value={worker.name}
-                  onChange={(e) => handleWorkerUpdate(worker.tagId, { name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-800"
-                  placeholder="Enter worker name"
-                />
-              </div>
-              <div className="col-span-5">
-              <MultiSelect
-                value={worker.groups}
-                options={workerGroups.map(group => ({ id: group.id, name: group.name, label: group.name, value: group.id }))}
-                onChange={(groups) => handleWorkerUpdate(worker.tagId, { groups })}
-                placeholder="Select groups..."
-              />
-              </div>
-{worker.floor_physical && (
-  <div className="col-span-1 text-right">
-    <button
-      onClick={() => handleLocateWorker(worker.tagId)}
-      className="text-gray-400 hover:text-cyan-500"
-    >
-      <MapPin size={18} />
-    </button>
-  </div>
-)}
+    const renderPeopleView = () => (
+        <div className="bg-gray-50 rounded-lg p-4">
+            <div className="grid grid-cols-12 gap-4 text-sm text-gray-500 font-medium mb-4">
+                <div className="col-span-2">TAG ID</div>
+                <div className="col-span-4">NAME</div>
+                <div className="col-span-5">GROUPS</div>
+
             </div>
-          </div>
-        ))}
-    </div>
-  );
+            {workers.map((worker) => (
+                <div key={worker.tagId} className="bg-white rounded-lg p-4">
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                        <div className="col-span-2 text-gray-500">
+                            {worker.tagId}
+                        </div>
+                        <div className="col-span-4">
+                            <input
+                                type="text"
+                                value={worker.name}
+                                onChange={(e) => handleWorkerUpdate(worker.id, {name: e.target.value})}
+                                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-800"
+                                placeholder="Enter worker name"
+                            />
+                        </div>
+                        <div className="col-span-5 text-gray-500">
+                            <MultiSelect
+                                value={worker.groups}
+                                options={workerGroups.map(group => ({
+                                    id: group.id,
+                                    name: group.name,
+                                    label: group.name,
+                                    value: group.id
+                                }))}
+                                onChange={(groups) => handleGroupChange(worker.id, {groups})}
+                                placeholder="Select groups..."
+                            />
+                        </div>
+                        {worker.floor_physical && (
+                            <div className="col-span-1 text-right">
+                                <button
+                                    onClick={() => handleLocateWorker(worker.tagId)}
+                                    className="text-gray-400 hover:text-cyan-500"
+                                >
+                                    <MapPin size={18}/>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
-  const renderGroupsView = () => (
-    <div className="space-y-4">
-      <div className="flex justify-start mb-4">
-        <button 
-          onClick={handleAddGroup}
-          className="flex items-center gap-1 text-cyan-500 hover:text-cyan-600 px-3 py-0"
-        >
-          <Plus size={18} />
-          Add Group
-        </button>
-      </div>
-      {workerGroups.map(group => {
-        const groupWorkerCount = workers.filter(w => w.groups.includes(group.id)).length;
-        
-        return (
-          <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-100">
-            <div className="flex items-center px-4 h-16">
-              <div className="text-gray-400 cursor-grab">
-                <GripVertical size={20} />
-              </div>
-              <div className="flex-1 ml-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={group.name}
-                    onChange={(e) => handleGroupUpdate(group.id, { name: e.target.value })}
-                    className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800"
-                  />
-                  <span className="text-sm text-gray-500">
+    const renderGroupsView = () => (
+        <div className="space-y-4">
+            <div className="flex justify-start mb-4">
+                <button
+                    onClick={handleAddGroup}
+                    className="flex items-center gap-1 text-cyan-500 hover:text-cyan-600 px-3 py-0"
+                >
+                    <Plus size={18}/>
+                    Add Group
+                </button>
+            </div>
+            {workerGroups.map(group => {
+                const groupWorkerCount = workers.filter(w => w.groups.includes(group.id)).length;
+
+                return (
+                    <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-100">
+                        <div className="flex items-center px-4 h-16">
+                            <div className="text-gray-400 cursor-grab">
+                                <GripVertical size={20}/>
+                            </div>
+                            <div className="flex-1 ml-4">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={group.name}
+                                        onChange={(e) => handleGroupUpdate(group.id, {name: e.target.value})}
+                                        className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800"
+                                    />
+                                    <span className="text-sm text-gray-500">
                     ({groupWorkerCount} workers)
                   </span>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={group.description || ''}
+                                    onChange={(e) => handleGroupUpdate(group.id, {description: e.target.value})}
+                                    placeholder="Add group description"
+                                    className="text-sm text-gray-500 bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 mt-1 w-full"
+                                />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => handleLocateGroup(group.name)}
+                                    className="text-gray-400 hover:text-cyan-500 flex items-center"
+                                >
+                                    <MapPin size={18}/> Show Locations
+
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteGroup(group.id)}
+                                    className="text-red-400 hover:text-cyan-500 flex items-center"
+                                >
+                                    <Trash2 size={18}/>
+
+                                </button>
+                                <button
+                                    onClick={() => setExpandedGroupId(
+                                        expandedGroupId === group.id ? null : group.id
+                                    )}
+                                    className="flex items-center gap-1 text-gray-600 hover:text-gray-800 px-3 py-2"
+                                >
+                                    {expandedGroupId === group.id ? (
+                                        <ChevronUp size={20}/>
+                                    ) : (
+                                        <ChevronDown size={20}/>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {expandedGroupId === group.id && (
+                            <div className="border-t">
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    {workers.filter(w => w.groups.includes(group.id)).map(worker => (
+                                        <div key={worker.tagId}
+                                             className="flex items-center justify-between py-2 border-b last:border-0">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-gray-500">{worker.tagId}</span>
+                                                <span>{worker.name || 'Unnamed Worker'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {workers.filter(w => w.groups.includes(group.id)).length === 0 && (
+                                        <div className="text-center text-gray-500 py-4">
+                                            No workers in this group
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="p-0">
+                <div className="inline-flex p-1 bg-gray-50 rounded-full w-full mb-4">
+                    <button
+                        onClick={() => setViewMode('people')}
+                        className={`flex-1 py-2 px-4 rounded-full font-medium transition-colors ${
+                            viewMode === 'people'
+                                ? 'bg-cyan-500 shadow-sm text-white'
+                                : 'text-gray-500'
+                        }`}
+                    >
+                        People
+                    </button>
+                    <button
+                        onClick={() => setViewMode('groups')}
+                        className={`flex-1 py-2 px-4 rounded-full font-medium transition-colors ${
+                            viewMode === 'groups'
+                                ? 'bg-cyan-500 shadow-sm text-white'
+                                : 'text-gray-500'
+                        }`}
+                    >
+                        Groups
+                    </button>
                 </div>
-                <input
-                  type="text"
-                  value={group.description || ''}
-                  onChange={(e) => handleGroupUpdate(group.id, { description: e.target.value })}
-                  placeholder="Add group description"
-                  className="text-sm text-gray-500 bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 mt-1 w-full"
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => handleLocateGroup(group.name)}
-                  className="text-gray-400 hover:text-cyan-500 flex items-center"
-                >
-                  <MapPin size={18} /> Show Locations
-                  
-                </button>
-                <button
-                  onClick={() => handleDeleteGroup(group.id)}
-                  className="text-red-400 hover:text-cyan-500 flex items-center"
-                >
-                  <Trash2 size={18} /> 
-                  
-                </button>
-                <button 
-                  onClick={() => setExpandedGroupId(
-                    expandedGroupId === group.id ? null : group.id
-                  )}
-                  className="flex items-center gap-1 text-gray-600 hover:text-gray-800 px-3 py-2"
-                >
-                  {expandedGroupId === group.id ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
-                  )}
-                </button>
-              </div>
+
+                <div className="flex-1 overflow-y-auto">
+                    {viewMode === 'people' ? renderPeopleView() : renderGroupsView()}
+                </div>
             </div>
-            
-            {expandedGroupId === group.id && (
-              <div className="border-t">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  {workers.filter(w => w.groups.includes(group.id)).map(worker => (
-                    <div key={worker.tagId} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div className="flex items-center gap-4">
-                        <span className="text-gray-500">{worker.tagId}</span>
-                        <span>{worker.name || 'Unnamed Worker'}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {workers.filter(w => w.groups.includes(group.id)).length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      No workers in this group
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="p-0">
-        <div className="inline-flex p-1 bg-gray-50 rounded-full w-full mb-4">
-          <button
-            onClick={() => setViewMode('people')}
-            className={`flex-1 py-2 px-4 rounded-full font-medium transition-colors ${
-              viewMode === 'people' 
-                ? 'bg-cyan-500 shadow-sm text-white' 
-                : 'text-gray-500'
-            }`}
-          >
-            People
-          </button>
-          <button
-            onClick={() => setViewMode('groups')}
-            className={`flex-1 py-2 px-4 rounded-full font-medium transition-colors ${
-              viewMode === 'groups' 
-                ? 'bg-cyan-500 shadow-sm text-white' 
-                : 'text-gray-500'
-            }`}
-          >
-            Groups
-          </button>
         </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {viewMode === 'people' ? renderPeopleView() : renderGroupsView()}
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default WorkersView;

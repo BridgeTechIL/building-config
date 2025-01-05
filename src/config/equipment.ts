@@ -1,5 +1,6 @@
 // config/equipment.ts
 export interface Equipment {
+  id: string;
   tagId: string;
   name: string;
   type: string;
@@ -33,30 +34,35 @@ export const equipmentGroups: EquipmentGroup[] = [
 
 export const equipment: Equipment[] = [
   {
+    id: '1',
     tagId: 'EQ001',
     name: 'Excavator #1',
     type: 'heavy',
     groups: ['heavy']
   },
   {
+    id: '2',
     tagId: 'EQ002',
     name: 'Power Drill Set',
     type: 'power',
     groups: ['power']
   },
   {
+    id: '3',
     tagId: 'EQ003',
     name: 'Safety Harness Kit',
     type: 'safety',
     groups: ['safety']
   },
   {
+    id: '4',
     tagId: 'EQ004',
     name: 'Cement Mixer',
     type: 'heavy',
     groups: ['heavy']
   },
   {
+    id: '5',
     tagId: 'EQ005',
     name: 'Circular Saw',
     type: 'power',

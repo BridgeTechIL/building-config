@@ -64,6 +64,7 @@ const [floors, setFloors] = useState<Floor[]>([]);
 const [floorNames, setFloorNames] = useState<Floor[]>([]);
 const [cameras, setCameras] = useState<[]>([]);
 const [cams, setCams] = useState<{}>({});
+const [sensors, setSensors] = useState<[]>([]);
 useEffect(() => {
 
   if (projectId) {
@@ -132,6 +133,18 @@ useEffect(() => {
 
           initializeIframeData(fetchedFloors, data.floor_names, cameras);
 
+          const fetchSensors = data.sensors.map((sensor: any) => ({
+                    tagId: sensor.id.toString(),
+                    name: sensor.display_name,
+                    type: sensor.type,
+                    location: {
+                      floor_physical: sensor.floor_physical,
+                      xy: [sensor.location_x, sensor.location_y],
+                      is_exact: true
+                    }
+                }));
+          setSensors(fetchSensors);
+
         })
         .catch(error => console.error('Error fetching floors:', error));
   }}, []);
@@ -176,7 +189,7 @@ useEffect(() => {
     updateIframeZones(updatedFloors);
   };
 
-function updateDB(projectId: string, itemName: string, itemId: number, column: string, value: any) {
+function updateDB(projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) {
   fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d', {
     method: 'POST',
     headers: {
@@ -184,6 +197,7 @@ function updateDB(projectId: string, itemName: string, itemId: number, column: s
     },
     body: JSON.stringify({
       projectId,
+      action,
       itemName,
       itemId,
       column,
@@ -203,7 +217,7 @@ function updateDB(projectId: string, itemName: string, itemId: number, column: s
     if (projectId) {
       const key = Object.keys(updates)[0];
       const value = Object.values(updates)[0];
-      updateDB(projectId, 'zones', parseInt(zoneId, 10), key, value);
+      updateDB(projectId,'rename', 'zones', parseInt(zoneId, 10), key, value);
     }
     const updatedFloors = floors.map(f =>
       f.level === floor
@@ -464,10 +478,13 @@ function updateDB(projectId: string, itemName: string, itemId: number, column: s
               onExport={handleExport}
               floors={floors}
               cams={cams}
+              sensors={sensors}
+              projectId={projectId}
               onUpdateFloorOrder={updateFloorOrder}
-              onAddZone={handleAddZone}        // Add this
-              onRemoveZone={handleRemoveZone}  // Add this
-              onUpdateZone={handleUpdateZone}  // Add this
+              onAddZone={handleAddZone}
+              onRemoveZone={handleRemoveZone}
+              onUpdateZone={handleUpdateZone}
+              updateDB={updateDB}
               onUpdateFloor={(floorId, updates) => {
                 setFloors(prevFloors =>
                   prevFloors.map(floor =>
