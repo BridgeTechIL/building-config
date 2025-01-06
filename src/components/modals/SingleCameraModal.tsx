@@ -26,15 +26,16 @@ const SingleCameraModal = ({ isOpen, onClose, title, videoUrl }: SingleCameraMod
 
                 <div className="p-6">
                     <div className="relative w-full flex justify-center">
-                        <video
-                            controls
-                            autoPlay
-                            className="w-full max-h-[394px] bg-gray-100 rounded-lg"
-                            playsInline
-                        >
-                            <source src={videoUrl} type="video/mp4" />
-                            Your browser does not support the video tag.
-                        </video>
+                        <iframe
+                            src={videoUrl}
+                            width="385"
+                            height="270"
+                            frameBorder="0"
+                            scrolling="no"
+                            allow="autoplay"
+                            allowFullScreen
+                            className="bg-gray-100"
+                        />
                     </div>
                 </div>
             </div>

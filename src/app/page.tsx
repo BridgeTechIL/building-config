@@ -65,6 +65,7 @@ const [floorNames, setFloorNames] = useState<Floor[]>([]);
 const [cameras, setCameras] = useState<[]>([]);
 const [cams, setCams] = useState<{}>({});
 const [sensors, setSensors] = useState<[]>([]);
+const [devicesCameras, setDevicesCameras] = useState<Record<string, string>>({});
 useEffect(() => {
 
   if (projectId) {
@@ -151,6 +152,8 @@ useEffect(() => {
                     }
                 }));
           setSensors(fetchSensors);
+
+          setDevicesCameras(data.devices_cameras);
 
         })
         .catch(error => console.error('Error fetching floors:', error));
@@ -453,7 +456,10 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
           background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
         }}>
         <Header projectName={step === 1 ? '' : projectData.name} />
-        <Steps currentStep={step} />
+        <Steps
+            currentStep={step}
+            devicesCameras={devicesCameras}
+        />
         <div className="flex-1 relative overflow-hidden">
           {step === 1 && (
             <BasicInfo
