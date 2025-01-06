@@ -58,7 +58,7 @@ function ZoneFloorItem({
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: floor.id });
+  } = useSortable({ id: floor.level.toString() });
 
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
 
@@ -80,7 +80,7 @@ function ZoneFloorItem({
   };
 
   const handleToggle = (id: string) => {
-    const floorNumber = floor.isBase ? 0 : floor.level;
+    const floorNumber = floor.level;
     notifyIframeOfFloorChange(floorNumber, !isExpanded);
     onToggleExpand(id);
   };
@@ -119,7 +119,7 @@ function ZoneFloorItem({
               View Cameras
             </button>
             <button
-                onClick={() => handleToggle(floor.id)}
+                onClick={() => handleToggle(floor.level.toString())}
                 className="flex items-center gap-1 text-gray-600 hover:text-gray-800 px-3 py-2"
             >
               {isExpanded ? "Hide zones" : "View zones"}
@@ -218,8 +218,8 @@ export default function ZonesView({
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      const oldIndex = floors.findIndex(item => item.id === active.id);
-      const newIndex = floors.findIndex(item => item.id === over?.id);
+      const oldIndex = floors.findIndex(item => item.level === active.id);
+      const newIndex = floors.findIndex(item => item.level === over?.id);
 
       if (floors[oldIndex].isBase || newIndex === 0) return;
 
@@ -235,17 +235,17 @@ export default function ZonesView({
       onDragEnd={handleDragEnd}
     >
       <SortableContext
-        items={floors.map(f => f.id)}
+        items={floors.map(f => f.level.toString())}
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-4">
           {floors.map((floor) => (
             <ZoneFloorItem
-              key={floor.id}
+              key={floor.level.toString()}
               floor={floor}
               floors={floors}
               cams={cams}
-              isExpanded={expandedFloorId === floor.id}
+              isExpanded={expandedFloorId === floor.level.toString()}
               onToggleExpand={handleToggleExpand}
               onAddZone={onAddZone}
               onRemoveZone={onRemoveZone}

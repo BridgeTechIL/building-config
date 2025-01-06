@@ -16,7 +16,7 @@ interface ProjectManagementProps {
     onRemoveZone: (floorId: string, zoneId: string) => void,
     onUpdateZone: (floor: number, zoneId: string, updates: Partial<Zone>) => void,
     onUpdateFloor: (floorId: string, updates: Partial<Floor>) => void,
-    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => void,
+    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => Promise<object>,
     sensors: Sensor[],
     projectId?: string | null
 }
@@ -115,11 +115,11 @@ const ProjectManagement = ({
                             onClick={() => setActiveArea(area.id)}
                             className={`flex-1 py-2 px-4 rounded-full font-medium transition-colors ${
                                 activeArea === area.id
-                                    ? 'bg-white shadow-sm'
+                                    ? 'bg-white shadow-sm text-cyan-500'
                                     : 'text-gray-500'
                             }`}
                         >
-                            {area.label}
+                            {area.label}{area.label === 'Workers'? <span id='peepCount'></span>:null}
                         </button>
                     ))}
                 </div>

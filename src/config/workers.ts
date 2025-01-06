@@ -6,6 +6,7 @@ export interface Worker {
   role: string;
   phone?: string;
   floor_physical?: number;
+  xy?: [number, number];
   groups: string[];  // Array of group IDs
 }
 

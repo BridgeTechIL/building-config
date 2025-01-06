@@ -15,7 +15,7 @@ const SingleCameraModal = ({ isOpen, onClose, title, videoUrl }: SingleCameraMod
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl w-[800px] max-w-[90vw]">
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-xl font-semibold">{title}</h2>
+                    <h2 className="text-xl font-semibold text-gray-500">{title}</h2>
                     <button
                         onClick={onClose}
                         className="p-1 hover:bg-gray-100 rounded-full"

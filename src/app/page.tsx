@@ -72,6 +72,13 @@ useEffect(() => {
         .then(response => response.json())
         .then(data => {
 
+          const projectName = data.project_name;
+          updateProjectField('name', projectName);
+          const hideElements = document.querySelectorAll('.hideOnProjectView');
+          hideElements.forEach(element => {
+              element.classList.add('hidden');
+          });
+
           const fetchedZones = data.zones.map((zone: any) => ({
             id: zone.id.toString(),
             gateId: zone.box_id,
@@ -189,8 +196,8 @@ useEffect(() => {
     updateIframeZones(updatedFloors);
   };
 
-function updateDB(projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) {
-  fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d', {
+function updateDB(projectId: string, action: string, itemName: string, itemId: number, column: string, value: any): Promise<any> {
+  return fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -204,13 +211,15 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
       value,
     }),
   })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Item updated successfully:', data);
-  })
-  .catch(error => {
-    console.error('Error updating item:', error);
-  });
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        return response.json()
+      })
+      .catch(error => {
+        console.error('Error updating item:', error)
+      })
 }
 
   const handleUpdateZone = (floor: number, zoneId: string, updates: Partial<Zone>) => {

@@ -11,7 +11,7 @@ const generateUniqueId = () => {
 type ViewMode = 'equipment' | 'groups';
 
 interface EquipmentViewProps {
-    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => void
+    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => Promise<any>;
 }
 
 const EquipmentView = ({updateDB}: EquipmentViewProps) => {
@@ -36,6 +36,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                     floor_physical: item.floor,
                     name: item.name ? item.name : 'Unnamed Equipment',
                     type: item.name ? item.name : 'Unnamed Equipment',
+                    xy: item.zone? item.zone : [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
                     groups: item.groups.map((group: any) => group.toString())
                 }));
                 setEquipment(parsedEquipment);
@@ -60,19 +61,29 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
     };
 
     const handleAddGroup = () => {
-        const newGroupId = generateUniqueId();
-        const newGroup: EquipmentGroup = {
-            id: newGroupId,
-            name: `Group ${groupCounter + 1}`,
-            description: ''
-        };
-
-        setEquipmentGroups(prev => [...prev, newGroup]);
-        setGroupCounter(prev => prev + 1);
+        const newGroupName = `Group ${groupCounter + 1}`;
+        if (projectId) {
+            updateDB(projectId,'add_group', 'groups', 2 , newGroupName, '')
+                .then((data: { id: number; }) => {
+                if (data.id) {
+                    const newGroupId = data.id;
+                    const newGroup: EquipmentGroup = {
+                        id: newGroupId.toString(),
+                        name: newGroupName,
+                        description: ''
+                    };
+                    setEquipmentGroups(prev => [...prev, newGroup]);
+                    setGroupCounter(prev => prev + 1);
+                }
+            });
+        }
     };
 
+
     const handleDeleteGroup = (groupId: string) => {
-        // Remove the group
+        if (projectId) {
+            updateDB(projectId,'delete_group', 'groups', parseInt(groupId, 10), '', '');
+        }
         setEquipmentGroups(prev => prev.filter(group => group.id !== groupId));
 
         // Remove the group from all equipment
@@ -115,8 +126,8 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                     name: eqp.name,
                     location: {
                         floor_physical: eqp.floor_physical,
-                        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-                        is_exact: true
+                        xy: eqp.xy,
+                        is_exact: false
                     }
                 }
             ];
@@ -146,8 +157,8 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                 name: eq.name,
                 location: {
                     floor_physical: eq.floor_physical,
-                    xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-                    is_exact: true
+                    xy: eq.xy,
+                    is_exact: false
                 }
             }));
 

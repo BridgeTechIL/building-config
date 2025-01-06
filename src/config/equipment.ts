@@ -5,6 +5,7 @@ export interface Equipment {
   name: string;
   type: string;
   floor_physical?: number;
+  xy?: [number, number];
   groups: string[];
 }
 

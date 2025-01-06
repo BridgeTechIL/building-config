@@ -13,7 +13,7 @@ const generateUniqueId = () => {
 type ViewMode = 'people' | 'groups';
 
 interface WorkersViewProps {
-    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => void
+    updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => Promise<any>;
 }
 
 const WorkersView = ({updateDB}: WorkersViewProps) => {
@@ -37,11 +37,17 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                     id: person.id.toString(),
                     tagId: person.tag_id.toString(),
                     floor_physical: person.floor,
+                    xy: person.zone? person.zone : [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
                     name: person.name ? person.name : 'Unnamed Worker',
                     role: person.trade ? person.trade : 'Unknown',
                     groups: person.groups.map((g: any) => g.toString()),
                 }));
                 setWorkers(parsedWorkers);
+                const peepCount = document.getElementById('peepCount');
+                if (peepCount) {
+                    peepCount.textContent = ` (${parsedWorkers.filter((w: any) => w.floor_physical).length}/${parsedWorkers.length})`;
+                }
+
 
             })
             .catch(error => console.error('Error fetching workers:', error));
@@ -74,19 +80,28 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
     }
 
     const handleAddGroup = () => {
-        const newGroupId = generateUniqueId();
-        const newGroup: WorkerGroup = {
-            id: newGroupId,
-            name: `Group ${groupCounter + 1}`,
-            description: ''
-        };
-
-        setWorkerGroups(prev => [...prev, newGroup]);
-        setGroupCounter(prev => prev + 1);
+        const newGroupName = `Group ${groupCounter + 1}`;
+        if (projectId) {
+            updateDB(projectId,'add_group', 'groups', 1 , newGroupName, '')
+                .then((data: { id: number; }) => {
+                if (data.id) {
+                    const newGroupId = data.id;
+                    const newGroup: WorkerGroup = {
+                        id: newGroupId.toString(),
+                        name: newGroupName,
+                        description: ''
+                    };
+                    setWorkerGroups(prev => [...prev, newGroup]);
+                    setGroupCounter(prev => prev + 1);
+                }
+            });
+        }
     };
 
     const handleDeleteGroup = (groupId: string) => {
-        // Remove the group
+        if (projectId) {
+            updateDB(projectId,'delete_group', 'groups', parseInt(groupId, 10), '', '');
+        }
         setWorkerGroups(prev => prev.filter(group => group.id !== groupId));
 
         // Remove the group from all workers
@@ -128,8 +143,8 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                     name: worker.name,
                     location: {
                         floor_physical: worker.floor_physical,
-                        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-                        is_exact: true
+                        xy: worker.xy,
+                        is_exact: false
                     }
                 }
             ];
@@ -148,8 +163,8 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                     name: worker.name,
                     location: {
                         floor_physical: worker.floor_physical,
-                        xy: [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
-                        is_exact: true
+                        xy: worker.xy,
+                        is_exact: false
                     }
                 }));
 
