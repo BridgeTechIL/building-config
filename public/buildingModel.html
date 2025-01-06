@@ -1128,20 +1128,20 @@
                             return;
                         }
                     }
-                    const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
-
-                    if (floorIntersects.length > 0) {
-                        const clickedObject = floorIntersects[0].object;
-                        const floorNumber = Math.round(window.activeFloorGroup.position.y / floorHeight);
-
-                        createFloorMenu(
-                            event.clientX,
-                            event.clientY,
-                            clickedObject,
-                            floorNumber
-                        );
-                        return;
-                    }
+                    // const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
+                    //
+                    // if (floorIntersects.length > 0) {
+                    //     const clickedObject = floorIntersects[0].object;
+                    //     const floorNumber = Math.round(window.activeFloorGroup.position.y / floorHeight);
+                    //
+                    //     createFloorMenu(
+                    //         event.clientX,
+                    //         event.clientY,
+                    //         clickedObject,
+                    //         floorNumber
+                    //     );
+                    //     return;
+                    // }
                 }
 
                 // Check all scene objects for regular floor selection
