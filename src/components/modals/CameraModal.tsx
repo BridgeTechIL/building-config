@@ -11,6 +11,7 @@ interface CameraModalProps {
 }
 
 const CameraModal = ({ isOpen, onClose, floor, floors, cams }: CameraModalProps) => {
+  floors = floors.sort((a, b) => a.level - b.level);
   const [currentFloorIndex, setCurrentFloorIndex] = useState(
     floors.findIndex(f => f.level.toString() === floor.level.toString())
   );
@@ -23,30 +24,43 @@ const CameraModal = ({ isOpen, onClose, floor, floors, cams }: CameraModalProps)
   const currentFloor = floors[currentFloorIndex];
   const cameras = cams[currentFloor.level.toString()] || [];
 
-  const handlePrevious = () => {
-    if (currentCameraIndex > 0) {
-      setCurrentCameraIndex(prev => prev - 1);
-    } else if (currentFloorIndex > 0) {
-      const prevFloor = floors[currentFloorIndex - 1];
-      const prevFloorCameras = cams[prevFloor.level.toString()] || [];
-      setCurrentFloorIndex(prev => prev - 1);
-      setCurrentCameraIndex(prevFloorCameras.length - 1);
+const handlePrevious = () => {
+  if (currentCameraIndex > 0) {
+    setCurrentCameraIndex((prev) => prev - 1);
+  } else {
+    let prevFloorIndex = currentFloorIndex - 1;
+    while (prevFloorIndex >= 0 && (!cams[floors[prevFloorIndex].level.toString()] || cams[floors[prevFloorIndex].level.toString()].length === 0)) {
+      prevFloorIndex--;
     }
-  };
+    if (prevFloorIndex >= 0) {
+      const prevFloorCameras = cams[floors[prevFloorIndex].level.toString()];
+      const lastCameraIndex = prevFloorCameras.length - 1;
+      setCurrentFloorIndex(prevFloorIndex);
+      setCurrentCameraIndex(lastCameraIndex);
+    }
+  }
+};
+
 
   const handleNext = () => {
     if (currentCameraIndex < cameras.length - 1) {
       setCurrentCameraIndex(prev => prev + 1);
-    } else if (currentFloorIndex < floors.length - 1) {
-      setCurrentFloorIndex(prev => prev + 1);
-      setCurrentCameraIndex(0);
+    } else {
+      let nextFloorIndex = currentFloorIndex + 1;
+      while (nextFloorIndex < floors.length && (!cams[floors[nextFloorIndex].level.toString()] || cams[floors[nextFloorIndex].level.toString()].length === 0)) {
+        nextFloorIndex++;
+      }
+      if (nextFloorIndex < floors.length) {
+        setCurrentFloorIndex(nextFloorIndex);
+        setCurrentCameraIndex(0);
+      }
     }
   };
 
   if (!isOpen) return null;
 
-  const canGoPrevious = currentCameraIndex > 0 || currentFloorIndex > 0;
-  const canGoNext = currentCameraIndex < cameras.length - 1 || currentFloorIndex < floors.length - 1;
+  const canGoPrevious = currentCameraIndex > 0 || (currentFloorIndex > 0 && floors.slice(0, currentFloorIndex).some(f => cams[f.level.toString()] && cams[f.level.toString()].length > 0));
+  const canGoNext = currentCameraIndex < cameras.length - 1 || (currentFloorIndex < floors.length - 1 && floors.slice(currentFloorIndex + 1).some(f => cams[f.level.toString()] && cams[f.level.toString()].length > 0));
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

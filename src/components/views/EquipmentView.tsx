@@ -227,6 +227,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
             </div>
             {equipmentGroups.map(group => {
                 const groupItemCount = equipment.filter(w => w.groups.includes(group.id)).length;
+                const groupOnSiteCount = equipment.filter(w => w.groups.includes(group.id) && w.floor_physical !== null).length;
 
                 return (
                     <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-100">
@@ -240,19 +241,24 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                                         type="text"
                                         value={group.name}
                                         onChange={(e) => handleGroupUpdate(group.id, {name: e.target.value})}
-                                        className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800"
+                                        className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800 mr-10"
                                     />
-                                    <span className="text-sm text-gray-500">
-                    ({groupItemCount} items)
-                  </span>
+                                    <span className="text-lg text-gray-500">
+                                      {groupItemCount}
+                                    </span>
                                 </div>
+                                <div  className="flex items-center">
                                 <input
                                     type="text"
                                     value={group.description || ''}
                                     onChange={(e) => handleGroupUpdate(group.id, {description: e.target.value})}
                                     placeholder="Add group description"
-                                    className="text-sm text-gray-500 bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 mt-1 w-full"
+                                    className="text-sm text-gray-500 bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 mt-1 mr-20"
                                 />
+                                <span className="text-sm text-gray-500">
+                                      ({groupOnSiteCount} on site)
+                                    </span>
+                                </div>
                             </div>
                             <div className="flex items-center gap-4">
                                 <button

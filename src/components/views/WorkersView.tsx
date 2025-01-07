@@ -45,7 +45,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                 setWorkers(parsedWorkers);
                 const peepCount = document.getElementById('peepCount');
                 if (peepCount) {
-                    peepCount.textContent = ` (${parsedWorkers.filter((w: any) => w.floor_physical).length}/${parsedWorkers.length})`;
+                    peepCount.textContent = ` (${parsedWorkers.filter((w: any) => w.floor_physical !== null).length}/${parsedWorkers.length})`;
                 }
 
 
@@ -157,7 +157,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
         if (group) {
             // Find all workers in this group
             const groupWorkers = workers
-                .filter(w => w.groups.includes(group.id) && w.floor_physical)
+                .filter(w => w.groups.includes(group.id) && w.floor_physical !== null)
                 .map(worker => ({
                     tag_id: worker.tagId,
                     name: worker.name,
@@ -209,7 +209,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                 placeholder="Select groups..."
                             />
                         </div>
-                        {worker.floor_physical && (
+                        {worker.floor_physical !== null && (
                             <div className="col-span-1 text-right">
                                 <button
                                     onClick={() => handleLocateWorker(worker.tagId)}
@@ -238,6 +238,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
             </div>
             {workerGroups.map(group => {
                 const groupWorkerCount = workers.filter(w => w.groups.includes(group.id)).length;
+                const groupWorkerOnSiteCount = workers.filter(w => w.groups.includes(group.id) && w.floor_physical !== null).length;
 
                 return (
                     <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-100">
@@ -251,19 +252,24 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                         type="text"
                                         value={group.name}
                                         onChange={(e) => handleGroupUpdate(group.id, {name: e.target.value})}
-                                        className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800"
+                                        className="font-medium text-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 text-gray-800 mr-10"
                                     />
-                                    <span className="text-sm text-gray-500">
-                    ({groupWorkerCount} workers)
-                  </span>
+                                    <span className="text-lg text-gray-500">
+                                      {groupWorkerCount}
+                                    </span>
                                 </div>
+                                <div  className="flex items-center">
                                 <input
                                     type="text"
                                     value={group.description || ''}
                                     onChange={(e) => handleGroupUpdate(group.id, {description: e.target.value})}
                                     placeholder="Add group description"
-                                    className="text-sm text-gray-500 bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 mt-1 w-full"
+                                    className="text-sm text-gray-500 bg-transparent focus:outline-none focus:ring-2 focus:ring-cyan-500 rounded-md px-2 mt-1 mr-20"
                                 />
+                                <span className="text-sm text-gray-500">
+                                      ({groupWorkerOnSiteCount} on site)
+                                    </span>
+                                </div>
                             </div>
                             <div className="flex items-center gap-4">
                                 <button

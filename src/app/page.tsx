@@ -88,7 +88,7 @@ useEffect(() => {
             isWifi: false,
             location: {
               floor_physical: zone.floor_physical,
-              xy: [zone.location_x, zone.location_y],
+              xy: [zone.location_x? zone.location_x : Math.floor(Math.random() * 66) + 5, zone.location_y? zone.location_y : Math.floor(Math.random() * 66) + 5],
               is_exact: true
             }
           }));
@@ -101,7 +101,7 @@ useEffect(() => {
             isWifi: true,
             location: {
               floor_physical: ap.floor_physical,
-              xy: [ap.location_x, ap.location_y],
+              xy: [ap.location_x? ap.location_x : Math.floor(Math.random() * 66) + 5, ap.location_y? ap.location_y : Math.floor(Math.random() * 66) + 5],
               is_exact: true
             }
           }));
@@ -114,7 +114,8 @@ useEffect(() => {
             items: {...defaultItems},
             zones: [...fetchedZones.filter((zone: any) => zone.location.floor_physical === parseInt(key, 10)), ...wifiZones.filter((zone: any) => zone.location.floor_physical === parseInt(key, 10))]
           }));
-          setFloors(fetchedFloors);
+          const sortedFloors = [...fetchedFloors].sort((a, b) => b.level - a.level);
+          setFloors(sortedFloors);
           setFloorNames(data.floor_names);
 
           const cameras = data.cameras.map((cam: any) => ({

@@ -171,7 +171,7 @@
             const buildingWidth = 30;
             const buildingDepth = 16;
             const floorHeight = 3;
-            const wallThickness = 0.1;
+            const wallThickness = 0.00001;
             let rojiBoxes = [];
             let elevators = [];
             let rojiBlinkInterval;
@@ -223,7 +223,7 @@
 
                      // Create and position items
                      items.forEach(item => {
-                         const label = createTextSprite(item.tag_id, 40);
+                         // const label = createTextSprite(item.tag_id, 40);
 
                          const { floor_physical, xy, is_exact } = item.location;
                          const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
@@ -241,10 +241,10 @@
                          createItemSprite(type, finalX, y, finalZ);
 
 
-                         label.position.set(finalX, y + 1.5, finalZ);
-                         label.scale.set(5, 1, 1);
-                         scene.add(label);
-                         activeItems.push(label);
+                         // label.position.set(finalX, y + 1.5, finalZ);
+                         // label.scale.set(5, 1, 1);
+                         // scene.add(label);
+                         // activeItems.push(label);
 
                      });
 
@@ -255,7 +255,7 @@
 
             function createTextSprite(text, size = 70) {
                 const canvas = document.createElement('canvas');
-                canvas.width = 512;
+                canvas.width = 700;
                 canvas.height = 128;
                 const context = canvas.getContext('2d');
 
@@ -508,19 +508,23 @@
                 createBuilding();
                 // createBuildingLines();
 
-                camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.5);
+                camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.8);
                 // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                 raycaster.setFromCamera(mouse, camera);
+                scene.rotation.y += 0.5;
                 
                 
                 animate();
             }
 
             const materials = {
-                floor: new THREE.MeshBasicMaterial({
-                    color: 0xcccccc,
+                floor: new THREE.MeshPhongMaterial({
+                    color: 0x039BE5,
                     transparent: true,
-                    opacity: 0.2
+                    opacity: 0,
+                    side: THREE.DoubleSide, // Make sure it renders on both sides
+                    emissive: 0x000000,
+                    shininess: 10, // Minimal shininess for a polished look
                 }),
                 // floor: new THREE.MeshPhongMaterial({
                 //     color: 0xcccccc,
@@ -534,8 +538,7 @@
                 // }),
                 underground: new THREE.MeshBasicMaterial({
                     color: 0x039BE5,
-                    transparent: true,
-                    opacity: 0.3
+                    transparent: 0,
                 }),
                 elevator: new THREE.MeshBasicMaterial({
                     color: 0x0066ff,
@@ -741,7 +744,7 @@
             }
 
             const CAMERA_POSITIONS = {
-                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 2.5),
+                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 2.8),
                 ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 4)
             };
 
@@ -934,7 +937,7 @@
                     // Add roof at the top floor
                     if (floor === totalFloors) {
                         const roofGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
-                        const roofMesh = new THREE.Mesh(roofGeometry, materials.floor.clone());
+                            const roofMesh = new THREE.Mesh(roofGeometry, materials.underground);
                         roofMesh.position.y = floor * floorHeight;
                         scene.add(roofMesh);
                         break;
@@ -943,7 +946,7 @@
                     // Create floor plane
                     const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
                     const floorMaterial = materials.floor.clone();
-                    const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+                    const floorMesh = new THREE.Mesh(floorGeometry, floor === 0 ? materials.underground : floorMaterial);
                     floorMesh.position.y = floor * floorHeight;
                     floorMesh.isFloor = true;
                     scene.add(floorMesh);
@@ -1475,7 +1478,6 @@
                                 floor * floorHeight + floorHeight / 2,
                                 randLocation.y
                             );
-                            helmet.scale.set(2, 2, 2);
 
                             // Add worker group metadata
                             helmet.userData = { group: selectedGroup };
@@ -1534,7 +1536,7 @@
                     createBuilding();
                     // createBuildingLines();
                     if (isWorkersVisible) { toggleWorkers(); }
-                    camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.5);
+                    camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.8);
                     // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                     raycaster.setFromCamera(mouse, camera);
                 }
@@ -1580,6 +1582,7 @@
 
                                 const y = floor_physical * floorHeight + 1;
                                 camModelClone.position.set(finalX, y, finalZ);
+                                // camModelClone.lookAt(-10, y, 0);
                                 camModelClone.traverse((child) => {
                                     if (child instanceof THREE.Mesh && child.geometry) {
                                         const camGeometry = child.geometry;
