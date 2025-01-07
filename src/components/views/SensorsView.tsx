@@ -75,7 +75,7 @@ const SensorsView = ({updateDB, fetchedSensors, projectId}: SensorsViewProps) =>
             {sensors.map((sensor) => (
                 <div key={sensor.tagId} className="bg-white rounded-lg p-4">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                        <div className="col-span-2 text-gray-500">
+                        <div className="col text-gray-500">
                             {sensor.tagId}
                         </div>
                         <div className="col-span-4">
@@ -87,7 +87,7 @@ const SensorsView = ({updateDB, fetchedSensors, projectId}: SensorsViewProps) =>
                                 placeholder="Enter sensor name"
                             />
                         </div>
-                        <div className="col-span-4 text-gray-500">
+                        <div className="col-span-5 text-gray-500">
                             {sensorTypes.find(type => type.name === sensor.type)?.name}
                         </div>
                         <div className="col-span-1 text-right">

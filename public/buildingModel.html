@@ -274,8 +274,8 @@
 
             function addZone(zone) {
                 const { name, is_wifi, is_dangerous, location } = zone;
-                const { floor_physical, xy, is_exact } = location;
-                const zoneGeometry = new THREE.BoxGeometry(buildingWidth/2 - 1, 0.3, buildingDepth/2 - 1);
+                const { floor_physical, xy, is_exact, size_xy } = location;
+                const zoneGeometry = new THREE.BoxGeometry(buildingWidth * size_xy[0] / 100, wallThickness, buildingDepth * size_xy[1] / 100);
                 const material = new THREE.MeshStandardMaterial({
                   emissive: is_dangerous? 0xff0000 : is_wifi? 0xFFFF00 : 0x0000FF,
                   color: 0x000000,

@@ -175,10 +175,10 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
             {equipment.map((item) => (
                 <div key={item.tagId} className="bg-white rounded-lg p-4">
                     <div className="grid grid-cols-12 gap-4 items-center">
-                        <div className="col-span-2 text-gray-500">
+                        <div className="col text-gray-500">
                             {item.tagId}
                         </div>
-                        <div className="col-span-4">
+                        <div className="col-span-3">
                             <input
                                 type="text"
                                 value={item.name}
@@ -187,7 +187,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                                 placeholder="Enter equipment name"
                             />
                         </div>
-                        <div className="col-span-5 text-gray-500">
+                        <div className="col-span-7 text-gray-500">
                             <MultiSelect
                                 value={item.groups}
                                 options={equipmentGroups.map(group => ({

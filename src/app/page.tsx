@@ -40,7 +40,7 @@ export default function Home() {
   const projectId = searchParams.get('project_id'); // Get the "project_id" param
   const initialState = projectId ? 4 : 1;
   const [step, setStep] = useState(initialState);
-  const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
+  const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined);
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
     installationDate: '',
@@ -89,7 +89,8 @@ useEffect(() => {
             isWifi: false,
             location: {
               floor_physical: zone.floor_physical,
-              xy: [zone.location_x? zone.location_x : Math.floor(Math.random() * 66) + 5, zone.location_y? zone.location_y : Math.floor(Math.random() * 66) + 5],
+              xy: [zone.location_x ? zone.location_x : Math.floor(Math.random() * 51) + 25, zone.location_y ? zone.location_y : Math.floor(Math.random() * 51) + 25],
+              size_xy: [zone.size_x? zone.size_x : 49, zone.size_y? zone.size_y : 49],
               is_exact: true
             }
           }));
@@ -102,7 +103,8 @@ useEffect(() => {
             isWifi: true,
             location: {
               floor_physical: ap.floor_physical,
-              xy: [ap.location_x? ap.location_x : Math.floor(Math.random() * 66) + 5, ap.location_y? ap.location_y : Math.floor(Math.random() * 66) + 5],
+              xy: [ap.location_x? ap.location_x : 50, ap.location_y? ap.location_y : 50],
+              size_xy: [ap.size_x? ap.size_x : 99, ap.size_y? ap.size_y : 99],
               is_exact: true
             }
           }));
