@@ -64,7 +64,7 @@ export default function Home() {
 const [floors, setFloors] = useState<Floor[]>([]);
 const [floorNames, setFloorNames] = useState<Floor[]>([]);
 const [cameras, setCameras] = useState<[]>([]);
-const [cams, setCams] = useState<{}>({});
+const [cams, setCams] = useState<Record<string, string[]>>({});
 const [sensors, setSensors] = useState<[]>([]);
 const [devicesCameras, setDevicesCameras] = useState<Record<string, string>>({});
 useEffect(() => {
