@@ -33,7 +33,7 @@ export default function Steps({currentStep, devicesCameras}: StepsProps) {
 
     const handleCameraClick = (title: string) => {
         if (devicesCameras) {
-            let videoUrl = devicesCameras[title];
+            const videoUrl = devicesCameras[title];
             setSelectedCamera({title, videoUrl});
             setIsCameraModalOpen(true);
         }

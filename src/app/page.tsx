@@ -38,7 +38,8 @@ interface BuildingItems {
 export default function Home() {
   const searchParams = useSearchParams(); // Access search params
   const projectId = searchParams.get('project_id'); // Get the "project_id" param
-  const [step, setStep] = projectId? useState(4) : useState(1);
+  const initialState = projectId ? 4 : 1;
+  const [step, setStep] = useState(initialState);
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
