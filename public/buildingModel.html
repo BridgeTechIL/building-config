@@ -525,7 +525,7 @@
 
             const materials = {
                 floor: new THREE.MeshPhongMaterial({
-                    color: 0x039BE5,
+                    color: 0xcccccc,
                     transparent: true,
                     opacity: 0,
                     side: THREE.DoubleSide, // Make sure it renders on both sides
@@ -543,7 +543,7 @@
                     
                 // }),
                 underground: new THREE.MeshBasicMaterial({
-                    color: 0x039BE5,
+                    color: 0xcccccc,
                     transparent: 0,
                 }),
                 elevator: new THREE.MeshBasicMaterial({
@@ -951,8 +951,8 @@
 
                     // Create floor plane
                     const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
-                    const floorMaterial = materials.floor.clone();
-                    const floorMesh = new THREE.Mesh(floorGeometry, floor === 0 ? materials.underground : floorMaterial);
+                    const floorMaterial = floor === 0 ? materials.underground : materials.floor;
+                    const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
                     floorMesh.position.y = floor * floorHeight;
                     floorMesh.isFloor = true;
                     scene.add(floorMesh);
@@ -972,7 +972,8 @@
                         // Front wall
                         {
                             geometry: new THREE.BoxGeometry(buildingWidth, sectionHeight, wallThickness),
-                            position: [0, floor * floorHeight + floorHeight / 2, buildingDepth / 2]
+                            position: [0, floor * floorHeight + floorHeight / 2, buildingDepth / 2],
+                            isFrontWall: true
                         },
                         // Back wall
                         {
@@ -984,6 +985,9 @@
                     walls.forEach(wall => {
                         const wallMesh = new THREE.Mesh(wall.geometry, wallMaterial);
                         wallMesh.position.set(...wall.position);
+                        if (wall.isFrontWall) {
+                            wallMesh.isFrontWall = true;
+                        }
                         scene.add(wallMesh);
 
                         // Add edges
@@ -1017,6 +1021,7 @@
                                     );
                                 const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
                                 const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
+                                verticalLine.clickable = false;
                                 wallMesh.add(verticalLine);
                                 } else { // Left/right walls
                                     lineStart = new THREE.Vector3(
@@ -1162,13 +1167,13 @@
                         // Get the Y position of the intersected object
                         const objectY = intersect.object.position.y;
                         // Check if it's a floor or within a floor's height range
-                        return intersect.object.isFloor ||
+                        return intersect.object.isFrontWall &&
                             (objectY % floorHeight < floorHeight + wallThickness &&
                                 objectY % floorHeight > -wallThickness);
                     });
 
                     if (floorComponent) {
-                        const floorNumber = Math.round(floorComponent.object.position.y / floorHeight);
+                        const floorNumber = Math.floor(floorComponent.object.position.y / floorHeight);
                         createAnimatedFloorView(floorNumber);
                     }
                 } else {
@@ -1177,7 +1182,7 @@
                         const objectY = intersect.object.position.y;
                         const currentFloorY = window.activeFloorGroup.position.y;
 
-                        return (intersect.object.isFloor ||
+                        return (intersect.object.isFrontWall &&
                             (objectY % floorHeight < floorHeight + wallThickness &&
                                 objectY % floorHeight > -wallThickness)) &&
                             Math.abs(Math.round(objectY / floorHeight) -
@@ -1185,7 +1190,7 @@
                     });
 
                     if (floorComponent) {
-                        const floorNumber = Math.round(floorComponent.object.position.y / floorHeight);
+                        const floorNumber = Math.floor(floorComponent.object.position.y / floorHeight);
                         createAnimatedFloorView(floorNumber);
                     }
                     else if (sceneIntersects.length === 0) {
