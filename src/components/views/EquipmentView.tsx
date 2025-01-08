@@ -36,7 +36,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                     floor_physical: item.floor,
                     name: item.name ? item.name : 'Unnamed Equipment',
                     type: item.name ? item.name : 'Unnamed Equipment',
-                    xy: item.zone? item.zone : [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+                    xy: item.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
                     groups: item.groups.map((group: any) => group.toString())
                 }));
                 setEquipment(parsedEquipment);

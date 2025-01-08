@@ -14,6 +14,7 @@ export interface WorkerGroup {
   id: string;
   name: string;
   description?: string;
+  color?: string;
 }
 
 export const workerGroups: WorkerGroup[] = [

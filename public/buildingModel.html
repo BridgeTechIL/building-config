@@ -238,7 +238,7 @@
 
                          const y = floor_physical * floorHeight + (floorHeight / 2);
 
-                         createItemSprite(type, finalX, y, finalZ);
+                         createItemSprite(type, finalX, y, finalZ, item.color || null);
 
 
                          // label.position.set(finalX, y + 1.5, finalZ);
@@ -310,7 +310,7 @@
                 currentZones.push(zoneMesh);
             }
 
-            function createItemSprite(type, x, y, z) {
+            function createItemSprite(type, x, y, z, color) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 64;
                 canvas.height = 64;
@@ -322,12 +322,15 @@
                         const loader = new GLTFLoader();
                         loader.load(loaded_models[type]['path'], function (gltf) {
                             const model = gltf.scene
-                            model.scale.set(0.7, 0.7, 0.7);
-                            const isRed = Math.random() < 1 / 3;
-                            const modelColor = isRed ? 0xff0000 : 0xffff00;
+                            model.scale.set(1.5, 1.5, 1.5);
+                            const modelColor = color || 0xffff00;
                             model.traverse(child => {
                                 if (child.isMesh) {
-                                    child.material = new THREE.MeshBasicMaterial({ color: modelColor });
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0x000000,
+                                        emissive: modelColor,
+                                        metalness: 1
+                                    });
                                 }
                             });
                             loaded_models[type]['obj'] = model;
@@ -338,11 +341,14 @@
                     } else {
                         let model = loaded_models[type]['obj'].clone();
                         model.position.set(x, y, z);
-                        const isRed = Math.random() < 1 / 3;
-                        const modelColor = isRed ? 0xff0000 : 0xffff00;
+                        const modelColor = color || 0xffff00;
                         model.traverse(child => {
                             if (child.isMesh) {
-                                child.material = new THREE.MeshBasicMaterial({ color: modelColor });
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0x000000,
+                                    emissive: modelColor,
+                                    metalness: 1
+                                });
                             }
                         });
                         scene.add(model);

@@ -89,7 +89,7 @@ useEffect(() => {
             isWifi: false,
             location: {
               floor_physical: zone.floor_physical,
-              xy: [zone.location_x ? zone.location_x : Math.floor(Math.random() * 51) + 25, zone.location_y ? zone.location_y : Math.floor(Math.random() * 51) + 25],
+              xy: [zone.location_x || Math.floor(Math.random() * 51) + 25, zone.location_y || Math.floor(Math.random() * 51) + 25],
               size_xy: [zone.size_x? zone.size_x : 49, zone.size_y? zone.size_y : 49],
               is_exact: true
             }
@@ -151,7 +151,7 @@ useEffect(() => {
                     type: sensor.type,
                     location: {
                       floor_physical: sensor.floor_physical,
-                      xy: [sensor.location_x, sensor.location_y],
+                      xy: [sensor.location_x || Math.floor(Math.random() * 66) + 10, sensor.location_y || Math.floor(Math.random() * 66) + 10],
                       is_exact: true
                     }
                 }));

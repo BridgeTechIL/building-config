@@ -21,15 +21,41 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
     const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
     const searchParams = useSearchParams(); // Access search params
     const projectId = searchParams.get('project_id'); // Get the "project_id" param
+    const [showColorDropdown, setShowColorDropdown] = useState<string | null>(null);
+    const groupColors = {
+        'Yellow': '#FFEB3B',
+        'Red': '#ff0000',
+        'Indigo': '#3F51B5',
+        'Pink': '#f652b6',
+        'White': '#FFFFFF',
+        'Black': '#000000',
+        'Brown': '#795548',
+        'Green': '#4CAF50',
+        'Purple': '#9C27B0',
+        'Deep Orange': '#FF5722',
+        'Blue Grey': '#607D8B',
+        'Blue': '#2196F3',
+        'Violet': '#673AB7',
+        'Teal': '#009688',
+        'Cyan': '#00BCD4',
+        'Lime': '#CDDC39',
+        'Amber': '#FFC107',
+        'Light Blue': '#03A9F4',
+        'Deep Purple': '#673AB7',
+        'Light Green': '#8BC34A',
+        'Orange': '#FF9800',
+
+        }
 
     useEffect(() => {
         fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
             .then(response => response.json())
             .then(data => {
-                const parsedGroups = data.worker_groups.map((group: any) => ({
+                const parsedGroups = data.worker_groups.map((group: any, index: number) => ({
                     id: group.id.toString(),
                     name: group.name,
                     description: group.description,
+                    color: Object.values(groupColors)[index % Object.keys(groupColors).length]
                 }));
                 setWorkerGroups(parsedGroups);
 
@@ -37,7 +63,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                     id: person.id.toString(),
                     tagId: person.tag_id.toString(),
                     floor_physical: person.floor,
-                    xy: person.zone? person.zone : [Math.floor(Math.random() * 66) + 5, Math.floor(Math.random() * 66) + 5],
+                    xy: person.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
                     name: person.name ? person.name : 'Unnamed Worker',
                     role: person.trade ? person.trade : 'Unknown',
                     groups: person.groups.map((g: any) => g.toString()),
@@ -89,7 +115,8 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                     const newGroup: WorkerGroup = {
                         id: newGroupId.toString(),
                         name: newGroupName,
-                        description: ''
+                        description: '',
+                        color: Object.values(groupColors)[workerGroups.length % Object.keys(groupColors).length]
                     };
                     setWorkerGroups(prev => [...prev, newGroup]);
                     setGroupCounter(prev => prev + 1);
@@ -110,6 +137,14 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
             groups: worker.groups.filter(gId => gId !== groupId)
         })));
     };
+
+    const setGroupColor = (groupId: string, color: string) => {
+        setWorkerGroups(prev =>
+            prev.map(group =>
+                group.id === groupId ? {...group, color} : group
+            )
+        );
+    }
 
     const handleGroupUpdate = (groupId: string, updates: Partial<WorkerGroup>) => {
         if (projectId) {
@@ -161,6 +196,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                 .map(worker => ({
                     tag_id: worker.tagId,
                     name: worker.name,
+                    color: group.color,
                     location: {
                         floor_physical: worker.floor_physical,
                         xy: worker.xy,
@@ -272,6 +308,38 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <button
+                                        style={{backgroundColor: group.color}}
+                                        className="w-7 h-7 rounded-full border border-gray-300"
+                                        onClick={() => setShowColorDropdown(prev => (prev === group.id ? null : group.id))}
+                                    />
+                                    {showColorDropdown === group.id && (
+                                        <div
+                                            className="absolute left-0 mt-2 bg-white border border-gray-300 rounded shadow-md z-10">
+                                            {Object.entries(groupColors).map(([key, value]) => (
+                                                <div
+                                                    key={key}
+                                                    className="flex items-center px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                                    onClick={() => {
+                                                        setGroupColor(group.id, value);
+                                                        setShowColorDropdown(null);
+                                                    }}
+                                                    >
+                                                    <span
+                                                        className="w-4 h-4 rounded-full mr-2"
+                                                        style={{
+                                                            backgroundColor: value,
+                                                            border: value === "#FFFFFF" ? "1px solid #000000" : "none",
+                                                        }}
+                                                    />
+                                                    <span style={{color: value === "#FFFFFF" ? "#000000" : value,}}>{key}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <button
                                     onClick={() => handleLocateGroup(group.name)}
                                     className="text-gray-400 hover:text-cyan-500 flex items-center"
