@@ -1,5 +1,5 @@
 'use client'
-import {useEffect, useRef, useState} from 'react'
+import {Suspense, useEffect, useRef, useState} from 'react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import Footer from '@/components/layout/Footer'
@@ -10,8 +10,16 @@ import CostReview from '@/components/forms/CostReview'
 import ProjectManagement from '@/components/forms/ProjectManagement'
 import {Floor, ProjectBasicInfo, Zone} from '@/types/building'
 import {calculateItemCost, getItemName} from '@/config/costs'
-import {useSearchParams} from "next/navigation";
+import {useSearchParams} from "next/navigation"
 
+type SearchParamsRenderProp = (params: { projectId: string | null }) => React.ReactElement
+
+// Update the provider with correct typing
+function SearchParamsProvider({ children }: { children: SearchParamsRenderProp }) {
+  const searchParams = useSearchParams()
+  const projectId = searchParams.get('project_id')
+  return children({ projectId })
+}
 
 const defaultItems = {
   gate: 0,
@@ -34,10 +42,7 @@ interface BuildingItems {
   };
 }
 
-
-export default function Home() {
-  const searchParams = useSearchParams(); // Access search params
-  const projectId = searchParams.get('project_id'); // Get the "project_id" param
+function HomeContent({ projectId }: { projectId: string | null }) {
   const initialState = projectId ? 4 : 1;
   const [step, setStep] = useState(initialState);
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined);
@@ -504,4 +509,18 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
       </div>
     </div>
   );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    }>
+      <SearchParamsProvider>
+        {({ projectId }) => <HomeContent projectId={projectId} />}
+      </SearchParamsProvider>
+    </Suspense>
+  )
 }
