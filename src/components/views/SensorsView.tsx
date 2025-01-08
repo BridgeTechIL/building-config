@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {MapPin, ChevronDown, ChevronUp} from 'lucide-react';
 import {Sensor, SensorType} from '@/config/sensors';
 
@@ -7,35 +7,76 @@ type ViewMode = 'sensors' | 'types';
 
 interface SensorsViewProps {
     updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => void,
-    fetchedSensors: Sensor[],
-    projectId?: string | null
+    projectId?: string | null,
+    floorNames: Record<number, string>,
 }
 
-const SensorsView = ({updateDB, fetchedSensors, projectId}: SensorsViewProps) => {
+const SensorsView = ({
+                         updateDB,
+                         projectId,
+                         floorNames,
+                     }: SensorsViewProps) => {
     const [viewMode, setViewMode] = useState<ViewMode>('sensors');
-    const [sensors, setSensors] = useState<Sensor[]>(fetchedSensors);
-    const fetchedTypes = Array.from(new Set(fetchedSensors.map((sensor: any) => sensor.type))).map(type => ({
-        name: type,
-    }));
-    const [sensorTypes] = useState<SensorType[]>(fetchedTypes);
+    const [sensors, setSensors] = useState<Sensor[]>([]);
+    const [sensorTypes, setSensorTypes] = useState<SensorType[]>([]);
+
+    useEffect(() => {
+        fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
+            .then(response => response.json())
+            .then(data => {
+              const fetchedSensors = data.sensors.map((sensor: any) => ({
+                    tagId: sensor.id.toString(),
+                    name: sensor.display_name,
+                    type: sensor.type,
+                    location: {
+                      floor_physical: sensor.floor_physical,
+                      xy: [sensor.location_x || Math.floor(Math.random() * 66) + 10, sensor.location_y || Math.floor(Math.random() * 66) + 10],
+                      is_exact: true
+                    }
+                }));
+              setSensors(fetchedSensors);
+
+              const fetchedTypes = Array.from(new Set(fetchedSensors.map((sensor: any) => sensor.type as string)) as Set<string>
+                ).map(type => ({
+                    name: type,
+                }));
+
+              setSensorTypes(fetchedTypes);
+
+
+
+
+            })
+            .catch(error => console.error('Error fetching sensors:', error));
+    }, []);
 
 
     const handleSensorUpdate = (tagId: string, updates: Partial<Sensor>) => {
         if (projectId) {
             const key = Object.keys(updates)[0];
             const value = Object.values(updates)[0];
-            updateDB(projectId,'rename', 'sensors', parseInt(tagId, 10), key, value);
+            updateDB(projectId, 'rename', 'sensors', parseInt(tagId, 10), key, value);
         }
         setSensors(prev => prev.map(sensor =>
             sensor.tagId === tagId ? {...sensor, ...updates} : sensor
         ));
     };
 
+    const handleFloorChange = (tagId: string, location: any, floor: number) => {
+        if (projectId) {
+            updateDB(projectId, 'rename', 'sensors', parseInt(tagId, 10), 'floor_physical', floor);
+        }
+        setSensors(prev => prev.map(sensor =>
+            sensor.tagId === tagId ? {...sensor, location: {...location, floor_physical: floor}} : sensor
+        ));
+    }
+
+
     const [expandedTypeId, setExpandedTypeId] = useState<string | null>(null);
 
     const handleLocateSensor = (tagId: string) => {
         const sensor = sensors.find(sensor => sensor.tagId === tagId);
-        if (!sensor) return;
+        if (!sensor || sensor.location.floor_physical === null) return;
         showSensorsIframe(sensor.name, [sensor]);
     };
 
@@ -69,8 +110,9 @@ const SensorsView = ({updateDB, fetchedSensors, projectId}: SensorsViewProps) =>
         <div className="bg-gray-50 rounded-lg p-4">
             <div className="grid grid-cols-12 gap-4 text-sm text-gray-500 font-medium mb-4">
                 <div className="col-span-2">TAG ID</div>
-                <div className="col-span-4">NAME</div>
-                <div className="col-span-5">TYPE</div>
+                <div className="col-span-3">NAME</div>
+                <div className="col-span-4">TYPE</div>
+                <div className="col-span-2">FLOOR</div>
             </div>
             {sensors.map((sensor) => (
                 <div key={sensor.tagId} className="bg-white rounded-lg p-4">
@@ -87,8 +129,22 @@ const SensorsView = ({updateDB, fetchedSensors, projectId}: SensorsViewProps) =>
                                 placeholder="Enter sensor name"
                             />
                         </div>
-                        <div className="col-span-5 text-gray-500">
+                        <div className="col-span-4 text-gray-500">
                             {sensorTypes.find(type => type.name === sensor.type)?.name}
+                        </div>
+                        <div className="col-span-2">
+                            <select
+                                value={sensor.location.floor_physical !== null ? sensor.location.floor_physical : '-'}
+                                onChange={(e) => handleFloorChange(sensor.tagId, sensor.location, parseInt(e.target.value, 10))}
+                                className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-gray-800"
+                            >
+                                {Object.entries(floorNames).map(([key, value]) => (
+                                    <option key={key} value={key}>
+                                        {value}
+                                    </option>
+                                ))}
+                                <option value="-">Not Set</option>
+                            </select>
                         </div>
                         <div className="col-span-1 text-right">
                             <button
@@ -97,8 +153,6 @@ const SensorsView = ({updateDB, fetchedSensors, projectId}: SensorsViewProps) =>
                             >
                                 <MapPin size={18}/>
                             </button>
-                        </div>
-                        <div className="col-span-1 text-right">
                         </div>
                     </div>
                 </div>

@@ -173,7 +173,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
 
     const handleLocateWorker = (tagId: string) => {
         const worker = workers.find(w => w.tagId === tagId);
-        if (worker) {
+        if (worker && worker.floor_physical !== null) {
             const workerLocation = [
                 {
                     tag_id: worker.tagId,
@@ -313,7 +313,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                 <div className="relative">
                                     <button
                                         style={{backgroundColor: group.color}}
-                                        className="w-7 h-7 rounded-full border border-gray-300"
+                                        className="w-6 h-6 rounded-full border border-gray-300 flex"
                                         onClick={() => setShowColorDropdown(prev => (prev === group.id ? null : group.id))}
                                     />
                                     {showColorDropdown === group.id && (
@@ -329,13 +329,12 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                                     }}
                                                     >
                                                     <span
-                                                        className="w-4 h-4 rounded-full mr-2"
+                                                        className="w-5 h-5 rounded-full mr-2"
                                                         style={{
                                                             backgroundColor: value,
-                                                            border: value === "#FFFFFF" ? "1px solid #000000" : "none",
+                                                            border: "1px solid #ccc"
                                                         }}
                                                     />
-                                                    <span style={{color: value === "#FFFFFF" ? "#000000" : value,}}>{key}</span>
                                                 </div>
                                             ))}
                                         </div>

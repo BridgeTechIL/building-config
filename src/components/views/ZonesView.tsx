@@ -80,8 +80,7 @@ function ZoneFloorItem({
   };
 
   const handleToggle = (id: string) => {
-    const floorNumber = floor.level;
-    notifyIframeOfFloorChange(floorNumber, !isExpanded);
+    notifyIframeOfFloorChange(parseInt(id), !isExpanded);
     onToggleExpand(id);
   };
 
@@ -150,7 +149,7 @@ function ZoneFloorItem({
                       <div className="col-span-5">
                         <input
                           type="text"
-                          value={zone.name}
+                          value={zone.name || ''}
                           onChange={(e) => onUpdateZone(floor.level, zone.id, { name: e.target.value })}
                           className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white text-gray-800"
                           placeholder="Zone name"

@@ -62,10 +62,9 @@ export default function Home() {
 
   // Modified floors state initialization
 const [floors, setFloors] = useState<Floor[]>([]);
-const [floorNames, setFloorNames] = useState<Floor[]>([]);
+const [floorNames, setFloorNames] = useState<Record<number, string>>({});
 const [cameras, setCameras] = useState<[]>([]);
 const [cams, setCams] = useState<Record<string, string[]>>({});
-const [sensors, setSensors] = useState<[]>([]);
 const [devicesCameras, setDevicesCameras] = useState<Record<string, string>>({});
 useEffect(() => {
 
@@ -144,18 +143,6 @@ useEffect(() => {
           setCams(fetchedCameras)
 
           initializeIframeData(fetchedFloors, data.floor_names, cameras);
-
-          const fetchSensors = data.sensors.map((sensor: any) => ({
-                    tagId: sensor.id.toString(),
-                    name: sensor.display_name,
-                    type: sensor.type,
-                    location: {
-                      floor_physical: sensor.floor_physical,
-                      xy: [sensor.location_x || Math.floor(Math.random() * 66) + 10, sensor.location_y || Math.floor(Math.random() * 66) + 10],
-                      is_exact: true
-                    }
-                }));
-          setSensors(fetchSensors);
 
           setDevicesCameras(data.devices_cameras);
 
@@ -408,12 +395,12 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
     }));
   };
 
-  function initializeIframeData(floors: Floor[], floorNames: Floor[], cameras: Array<object>) {
+  function initializeIframeData(floors: Floor[], floorNames: Record<number, string>, cameras: Array<object>) {
     console.log('Initializing iframe data');
     const iframe = document.querySelector('iframe');
     if (iframe && iframe.contentWindow) {
 
-      const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void } & { updateFloorNames?: (names: Array<object>) => void };
+      const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void } & { updateFloorNames?: (names: Record<string, string>) => void };
       const iframeDocument = contentWindow.document;
       const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
       if (floorAmount) {
@@ -496,21 +483,14 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
             <ProjectManagement
               onExport={handleExport}
               floors={floors}
+              floorNames={floorNames}
               cams={cams}
-              sensors={sensors}
               projectId={projectId}
               onUpdateFloorOrder={updateFloorOrder}
               onAddZone={handleAddZone}
               onRemoveZone={handleRemoveZone}
               onUpdateZone={handleUpdateZone}
               updateDB={updateDB}
-              onUpdateFloor={(floorId, updates) => {
-                setFloors(prevFloors =>
-                  prevFloors.map(floor =>
-                    floor.id === floorId ? { ...floor, ...updates } : floor
-                  )
-                );
-              }}
             />
           )}
         </div>

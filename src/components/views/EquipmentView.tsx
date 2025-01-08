@@ -119,7 +119,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
 
     const handleLocateEquipment = (tagId: string, name: string) => {
         const eqp = equipment.find(e => e.tagId === tagId);
-        if (eqp) {
+        if (eqp && eqp.floor_physical !== null) {
             const eqpLocation = [
                 {
                     tag_id: eqp.tagId,
@@ -151,7 +151,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
 
     const handleLocateGroup = (groupId: string, groupName: string) => {
         const groupEquipment = equipment
-            .filter(eq => eq.groups.includes(groupId) && eq.floor_physical)
+            .filter(eq => eq.groups.includes(groupId) && eq.floor_physical !== null)
             .map(eq => ({
                 tag_id: eq.tagId,
                 name: eq.name,
@@ -200,7 +200,7 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                                 placeholder="Select groups..."
                             />
                         </div>
-                        {item.floor_physical && (<div className="col-span-1 text-right">
+                        {item.floor_physical !== null && (<div className="col-span-1 text-right">
                             <button
                                 onClick={() => handleLocateEquipment(item.tagId, item.name)}
                                 className="text-gray-400 hover:text-cyan-500"

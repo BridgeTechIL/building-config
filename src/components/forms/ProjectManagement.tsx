@@ -4,7 +4,6 @@ import {Floor, Zone} from '../../types/building';
 import WorkersView from '../views/WorkersView';
 import EquipmentView from '../views/EquipmentView';
 import SensorsView from '../views/SensorsView';
-import {Sensor} from "@/config/sensors";
 
 
 interface ProjectManagementProps {
@@ -15,10 +14,9 @@ interface ProjectManagementProps {
     onAddZone: (floorId: string) => void,
     onRemoveZone: (floorId: string, zoneId: string) => void,
     onUpdateZone: (floor: number, zoneId: string, updates: Partial<Zone>) => void,
-    onUpdateFloor: (floorId: string, updates: Partial<Floor>) => void,
     updateDB: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => Promise<object>,
-    sensors: Sensor[],
-    projectId?: string | null
+    projectId?: string | null,
+    floorNames: Record<number, string>,
 }
 
 const ProjectManagement = ({
@@ -28,10 +26,9 @@ const ProjectManagement = ({
                                onAddZone,
                                onRemoveZone,
                                onUpdateZone,
-                               onUpdateFloor,
                                updateDB,
-                               sensors,
-                               projectId
+                               projectId,
+                               floorNames,
                            }: ProjectManagementProps) => {
     const [activeArea, setActiveArea] = React.useState('area1');
 
@@ -41,37 +38,6 @@ const ProjectManagement = ({
         {id: 'area3', label: 'Equipment'},
         {id: 'area4', label: 'Sensors'}
     ];
-
-    const handleAddZone = (floorId: string) => {
-        const floor = floors.find(f => f.id === floorId);
-        if (!floor) return;
-
-        const newZone: Zone = {
-            id: `zone_${Date.now()}`,
-            name: `Zone ${floor.zones.length + 1}`,
-            isWifi: false,
-            isDanger: false,
-            gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
-            location: {
-                floor_physical: floor.level,
-                xy: [50, 50], // Default to center of the floor
-                is_exact: true
-            }
-        };
-
-        onUpdateFloor(floorId, {
-            zones: [...floor.zones, newZone]
-        });
-    };
-
-    const handleRemoveZone = (floorId: string, zoneId: string) => {
-        const floor = floors.find(f => f.id === floorId);
-        if (!floor) return;
-
-        onUpdateFloor(floorId, {
-            zones: floor.zones.filter(z => z.id !== zoneId)
-        });
-    };
 
     const renderAreaContent = () => {
         switch (activeArea) {
@@ -96,9 +62,9 @@ const ProjectManagement = ({
                 />;
             case 'area4':
                 return <SensorsView
-                    fetchedSensors={sensors}
                     updateDB={updateDB}
                     projectId={projectId}
+                    floorNames={floorNames}
                 />;
             default:
                 return null;
@@ -119,7 +85,7 @@ const ProjectManagement = ({
                                     : 'text-gray-500'
                             }`}
                         >
-                            {area.label}{area.label === 'Workers'? <span id='peepCount'></span>:null}
+                            {area.label}{area.label === 'Workers' ? <span id='peepCount'></span> : null}
                         </button>
                     ))}
                 </div>
