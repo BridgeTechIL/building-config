@@ -190,7 +190,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
         }
     };
 
-const handleLocateGroup = (groupName: string, groupId: string) => {
+const handleLocateGroup = (groupId: string) => {
     const updatedGroups = workerGroups.map(g =>
         g.id === groupId ? {...g, isActive: !g.isActive} : g
     );
@@ -355,7 +355,7 @@ const groupWorkers = workers
 
                                 <button
                                     onClick={() => {
-                                        handleLocateGroup(group.name, group.id);
+                                        handleLocateGroup(group.id);
                                     }}
                                     className={`flex items-center ${group.isActive ? 'text-cyan-500' : 'text-gray-400'} hover:text-cyan-500`}
                                 >

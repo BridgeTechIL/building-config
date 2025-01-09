@@ -28,6 +28,8 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                 const parsedGroups = data.equipment_groups.map((group: any) => ({
                     id: group.id.toString(),
                     name: group.name,
+                    description: group.description,
+                    isActive: false
                 }));
                 setEquipmentGroups(parsedGroups);
                 const parsedEquipment = data.stuff.map((item: any) => ({
@@ -70,7 +72,8 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                     const newGroup: EquipmentGroup = {
                         id: newGroupId.toString(),
                         name: newGroupName,
-                        description: ''
+                        description: '',
+                        isActive: false
                     };
                     setEquipmentGroups(prev => [...prev, newGroup]);
                     setGroupCounter(prev => prev + 1);
@@ -149,9 +152,14 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
         }
     };
 
-    const handleLocateGroup = (groupId: string, groupName: string) => {
+    const handleLocateGroup = (groupId: string) => {
+        const updatedGroups = equipmentGroups.map(g =>
+            g.id === groupId ? {...g, isActive: !g.isActive} : g
+        );
+        setEquipmentGroups(updatedGroups);
+        const activeGroups = updatedGroups.filter(g => g.isActive);
         const groupEquipment = equipment
-            .filter(eq => eq.groups.includes(groupId) && eq.floor_physical !== null)
+            .filter(eq => eq.groups.some(gId => activeGroups.map(g => g.id).includes(gId)) && eq.floor_physical !== null)
             .map(eq => ({
                 tag_id: eq.tagId,
                 name: eq.name,
@@ -162,7 +170,8 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                 }
             }));
 
-        showEquipmentIframe(groupName, groupEquipment);
+        const groupNames = activeGroups.map(g => g.name).join(', ');
+        showEquipmentIframe(groupNames, groupEquipment);
     };
 
     const renderEquipmentView = () => (
@@ -262,11 +271,12 @@ const EquipmentView = ({updateDB}: EquipmentViewProps) => {
                             </div>
                             <div className="flex items-center gap-4">
                                 <button
-                                    onClick={() => handleLocateGroup(group.id, group.name)}
-                                    className="text-gray-400 hover:text-cyan-500 flex items-center"
+                                    onClick={() => {
+                                        handleLocateGroup(group.id);
+                                    }}
+                                    className={`flex items-center ${group.isActive ? 'text-cyan-500' : 'text-gray-400'} hover:text-cyan-500`}
                                 >
                                     <MapPin size={18}/> Show Locations
-
                                 </button>
                                 <button
                                     onClick={() => handleDeleteGroup(group.id)}
