@@ -1411,13 +1411,13 @@
             }
 
             window.showLegendModal = function () {
+                const img = document.createElement('img');
+                img.src = 'legend.png';
+                img.style.width = '100%';
                 const modal = document.getElementById('floorInfoModal');
                 const title = document.getElementById('floorInfoTitle');
                 const content = document.getElementById('floorInfoContent');
                 title.textContent = 'Legend';
-                const img = document.createElement('img');
-                img.src = 'legend.png';
-                img.style.width = '100%';
                 content.innerHTML = '';
                 content.appendChild(img);
                 modal.style.display = 'block';
