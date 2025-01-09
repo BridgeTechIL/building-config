@@ -16,6 +16,15 @@
             color: white;
             background: rgba(0,0,0,0.5);
         }
+        #legendText{
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: white;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
         #instructions {
             position: absolute;
             top: 10px;
@@ -108,6 +117,10 @@
         A/D: Left/Right<br>
         Q/E: Up/Down<br>
         Arrows: Rotate
+    </div>
+
+    <div id="legendText" onclick="window.showLegendModal()">
+        View Legend
     </div>
 
     <div id="controls">
@@ -1397,7 +1410,23 @@
                 }
             }
 
+            window.showLegendModal = function () {
+                const modal = document.getElementById('floorInfoModal');
+                const title = document.getElementById('floorInfoTitle');
+                const content = document.getElementById('floorInfoContent');
+                title.textContent = 'Legend';
+                const img = document.createElement('img');
+                img.src = 'legend.png';
+                img.style.width = '100%';
+                content.innerHTML = '';
+                content.appendChild(img);
+                modal.style.display = 'block';
+                if (window.activeMenu) {
+                    document.body.removeChild(window.activeMenu);
+                    window.activeMenu = null;
 
+                }
+            }
             window.replaceWithIframe = function (url) {
                 const contentDiv = document.getElementById('floorInfoContent');
 
