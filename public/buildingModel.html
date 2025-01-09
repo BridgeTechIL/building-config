@@ -195,8 +195,6 @@
             let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
             let activeItems = [];
             let currentZones = [];
-            let itemTitle = null;
-            let titleSprite = null;
             window.activeMenu = null;
             let blinkingItems = new Set();
             let lastBlinkTime = 0;
@@ -244,7 +242,7 @@
 
                          const y = floor_physical * floorHeight + (floorHeight / 2);
 
-                         createItemSprite(type, finalX, y, finalZ, item.color || null);
+                         createItemSprite(type, finalX, y, finalZ, item.color || null, floor_physical);
 
 
                          // label.position.set(finalX, y + 1.5, finalZ);
@@ -316,7 +314,7 @@
                 currentZones.push(zoneMesh);
             }
 
-            function createItemSprite(type, x, y, z, color) {
+            function createItemSprite(type, x, y, z, color, floor_physical) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 64;
                 canvas.height = 64;
@@ -330,6 +328,7 @@
                             const model = gltf.scene
                             model.scale.set(1.5, 1.5, 1.5);
                             const modelColor = color || 0xffff00;
+                            model.name = `item-${type}`;
                             model.traverse(child => {
                                 if (child.isMesh) {
                                     child.material = new THREE.MeshStandardMaterial({
@@ -341,7 +340,19 @@
                             });
                             loaded_models[type]['obj'] = model;
                             model.position.set(x, y, z);
-                            scene.add(model);
+
+
+                            if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                                window.activeFloorGroup.add(model);
+                                let clone = model.clone();
+                                clone.visible = false
+                                scene.add(clone);
+                                activeItems.push(clone);
+                                window.activeFloorGroup.originalComponents.push(clone);
+                                model.position.y = 1;
+                            } else {
+                                scene.add(model);
+                            }
                             activeItems.push(model);
                         });
                     } else {
@@ -357,7 +368,17 @@
                                 });
                             }
                         });
-                        scene.add(model);
+                        if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                            window.activeFloorGroup.add(model);
+                            let clone = model.clone();
+                            clone.visible = false
+                            scene.add(clone);
+                            activeItems.push(clone);
+                            window.activeFloorGroup.originalComponents.push(clone);
+                            model.position.y = 1;
+                        } else {
+                            scene.add(model);
+                        }
                         activeItems.push(model);
                     }
                 } else if (type === 'equipment') {
@@ -371,10 +392,9 @@
                         opacity: 1
                     });
                     const sphere = new THREE.Mesh(geometry, material);
+                    sphere.name = `item-${type}`;
                     sphere.position.set(x, y, z);
-                    scene.add(sphere);
-                    activeItems.push(sphere);
-                    blinkingItems.add(sphere);
+
 
                     // Add a glowing effect
                     const glowGeometry = new THREE.SphereGeometry(1.2, 32, 32);
@@ -384,6 +404,22 @@
                         opacity: 0.3
                     });
                     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+
+                    if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                        window.activeFloorGroup.add(sphere);
+                        let clone = sphere.clone();
+                        clone.visible = false
+                        scene.add(clone);
+                        activeItems.push(clone);
+                        blinkingItems.add(clone);
+                        clone.add(glow);
+                        window.activeFloorGroup.originalComponents.push(clone);
+                        sphere.position.y = 1;
+                    } else {
+                        scene.add(sphere);
+                    }
+                    activeItems.push(sphere);
+                    blinkingItems.add(sphere);
                     sphere.add(glow);
 
                 } else if (type === 'sensors') {
@@ -397,11 +433,6 @@
                         opacity: 1
                     });
                     const sphere = new THREE.Mesh(geometry, material);
-                    sphere.position.set(x, y, z);
-                    scene.add(sphere);
-                    activeItems.push(sphere);
-                    blinkingItems.add(sphere);
-
                     // Add a glowing effect
                     const glowGeometry = new THREE.SphereGeometry(1, 32, 32);
                     const glowMaterial = new THREE.MeshPhongMaterial({
@@ -410,6 +441,24 @@
                         opacity: 0.3
                     });
                     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    sphere.position.set(x, y, z);
+                    sphere.name = `item-${type}`;
+
+                    if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                        window.activeFloorGroup.add(sphere);
+                        let clone = sphere.clone();
+                        clone.visible = false
+                        scene.add(clone);
+                        activeItems.push(clone);
+                        blinkingItems.add(clone);
+                        window.activeFloorGroup.originalComponents.push(clone);
+                        sphere.position.y = 1;
+                        clone.add(glow);
+                    } else {
+                        scene.add(sphere);
+                    }
+                    activeItems.push(sphere);
+                    blinkingItems.add(sphere);
                     sphere.add(glow);
                 }
 
@@ -432,14 +481,15 @@
             // Add this function to clear existing items
             function clearExistingItems() {
                 activeItems.forEach(item => {
-                    scene.remove(item);
+                    if (item.parent) {
+                        item.parent.remove(item);
+                        scene.remove(item);
+                    } else {
+                        scene.remove(item);
+                    }
                 });
                 activeItems = [];
 
-                if (titleSprite) {
-                    scene.remove(titleSprite);
-                    titleSprite = null;
-                }
             }
 
             function createHelmetSprite(color) {
@@ -852,6 +902,12 @@
                         floorGroup.add(clone);
                         if (child.name && child.name.includes('zone')) {
                             currentZones.push(clone);
+                        }
+                        if (child.name && child.name.includes('item')) {
+                            activeItems.push(clone);
+                            if (child.name.includes('equipment') || child.name.includes('sensors')) {
+                                blinkingItems.add(clone);
+                            }
                         }
 
                         if (child.children.length > 0) {

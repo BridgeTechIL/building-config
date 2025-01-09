@@ -88,7 +88,7 @@ export default function Steps({currentStep, devicesCameras}: StepsProps) {
 
     return (
         <div className="flex justify-between items-center w-full px-6">
-            {steps.map((step) => (
+            {steps.filter(step => step.id < 4).map((step) => (
                 <div key={step.id} className="flex items-center flex-1">
                     <div
                         className={`flex items-center gap-2 ${currentStep === step.id ? 'text-gray-900' : 'text-gray-400'}`}>
