@@ -438,7 +438,7 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
           buildingItems={buildingItems}
         />
       ) : (
-        <div className="w-1/2 bg-white p-8 relative flex flex-col h-full">
+        <div className="w-1/2 bg-white relative flex flex-col h-full">
           <iframe
             src="/buildingModel.html"
             width="100%"
