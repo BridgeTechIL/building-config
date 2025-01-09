@@ -22,7 +22,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
     const searchParams = useSearchParams(); // Access search params
     const projectId = searchParams.get('project_id'); // Get the "project_id" param
     const [showColorDropdown, setShowColorDropdown] = useState<string | null>(null);
-    const groupColors = {
+    const groupColors: { [key: string]: string } = {
         'Yellow': '#FFFF00',
         'Red': '#FF0000',
         'Blue': '#0000FF',
@@ -46,8 +46,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
         'Deep Purple': '#673AB7',
         'Light Green': '#8BC34A',
         'Orange': '#FF9800',
-
-        }
+    };
 
     useEffect(() => {
         fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
@@ -57,7 +56,8 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                     id: group.id.toString(),
                     name: group.name,
                     description: group.description,
-                    color: Object.values(groupColors)[index % Object.keys(groupColors).length]
+                    color: Object.values(groupColors)[index % Object.keys(groupColors).length],
+                    isActive: false
                 }));
                 setWorkerGroups(parsedGroups);
 
@@ -118,6 +118,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                         id: newGroupId.toString(),
                         name: newGroupName,
                         description: '',
+                        isActive: false,
                         color: Object.values(groupColors)[workerGroups.length % Object.keys(groupColors).length]
                     };
                     setWorkerGroups(prev => [...prev, newGroup]);
@@ -189,26 +190,37 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
         }
     };
 
-    const handleLocateGroup = (groupName: string) => {
-        const group = workerGroups.find(g => g.name === groupName);
-        if (group) {
-            // Find all workers in this group
-            const groupWorkers = workers
-                .filter(w => w.groups.includes(group.id) && w.floor_physical !== null)
-                .map(worker => ({
-                    tag_id: worker.tagId,
-                    name: worker.name,
-                    color: group.color,
-                    location: {
-                        floor_physical: worker.floor_physical,
-                        xy: worker.xy,
-                        is_exact: false
-                    }
-                }));
+const handleLocateGroup = (groupName: string, groupId: string) => {
+    const updatedGroups = workerGroups.map(g =>
+        g.id === groupId ? {...g, isActive: !g.isActive} : g
+    );
+    setWorkerGroups(updatedGroups);
+    const activeGroups = updatedGroups.filter(g => g.isActive);
+    const groupColors = activeGroups.reduce((acc, g) => {
+        acc[g.id] = g.color;  // Use ID instead of name
+        return acc;
+    }, {} as { [key: string]: string });
 
-            showWorkersIframe(groupName, groupWorkers);
-        }
-    };
+const groupWorkers = workers
+.filter(w => w.groups.some(gId => Object.keys(groupColors).includes(gId)) && w.floor_physical !== null)
+.map(worker => {
+   const matchingGroupIds = worker.groups.filter(gId => Object.keys(groupColors).includes(gId));
+   const randomGroupId = matchingGroupIds[Math.floor(Math.random() * matchingGroupIds.length)];
+   return {
+       tag_id: worker.tagId,
+       name: worker.name,
+       color: groupColors[randomGroupId],
+       location: {
+           floor_physical: worker.floor_physical,
+           xy: worker.xy,
+           is_exact: false
+       }
+   };
+});
+
+    const groupNames = activeGroups.map(g => g.name).join(', ');
+    showWorkersIframe(groupNames, groupWorkers);
+};
 
 
     const renderPeopleView = () => (
@@ -327,7 +339,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                                         setGroupColor(group.id, value);
                                                         setShowColorDropdown(null);
                                                     }}
-                                                    >
+                                                >
                                                     <span
                                                         className="w-5 h-5 rounded-full mr-2"
                                                         style={{
@@ -342,11 +354,12 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
                                 </div>
 
                                 <button
-                                    onClick={() => handleLocateGroup(group.name)}
-                                    className="text-gray-400 hover:text-cyan-500 flex items-center"
+                                    onClick={() => {
+                                        handleLocateGroup(group.name, group.id);
+                                    }}
+                                    className={`flex items-center ${group.isActive ? 'text-cyan-500' : 'text-gray-400'} hover:text-cyan-500`}
                                 >
                                     <MapPin size={18}/> Show Locations
-
                                 </button>
                                 <button
                                     onClick={() => handleDeleteGroup(group.id)}
