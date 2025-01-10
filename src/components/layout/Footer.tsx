@@ -16,7 +16,7 @@ export default function Footer({ step, setStep, canProgress, onExport }: FooterP
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 border-t bg-white">
+    <div className="absolute bottom-0 left-0 right-0 border-t bg-white text-gray-500">
       <div className="flex justify-between items-center p-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-cyan-500 text-cyan-500">
@@ -41,7 +41,7 @@ export default function Footer({ step, setStep, canProgress, onExport }: FooterP
           </button>
           <button
             onClick={() => setStep(Math.max(1, step - 1))}
-            className={`w-12 h-12 rounded-full border hover:bg-gray-50 flex items-center justify-center ${
+            className={`w-12 h-12 rounded-full border hover:bg-gray-50 flex items-center justify-center border-gray-500 ${
               step === 1 ? 'invisible' : ''
             }`}
           >
@@ -50,8 +50,8 @@ export default function Footer({ step, setStep, canProgress, onExport }: FooterP
           <button
             onClick={() => setStep(Math.min(4, step + 1))}
             disabled={!canProgress}
-            className={`w-12 h-12 rounded-full border hover:bg-gray-50 flex items-center justify-center ${
-              !canProgress || step === 3 ? 'opacity-50 cursor-not-allowed' : ''
+            className={`w-12 h-12 rounded-full border hover:bg-gray-50 flex items-center justify-center border-gray-500${
+              !canProgress || step === 3 ? 'opacity-50 cursor-not-allowed text-gray-200' : ''
             } ${step === 3 ? 'invisible' : ''} `}
           >
             <ChevronRight size={24} />

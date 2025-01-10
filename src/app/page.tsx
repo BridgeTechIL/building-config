@@ -45,6 +45,7 @@ interface BuildingItems {
 function HomeContent({ projectId }: { projectId: string | null }) {
   const initialState = projectId ? 4 : 1;
   const [step, setStep] = useState(initialState);
+  const [floorCount, setFloorCount] = useState(0)
   const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined);
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
@@ -66,7 +67,17 @@ function HomeContent({ projectId }: { projectId: string | null }) {
   });
 
   // Modified floors state initialization
-const [floors, setFloors] = useState<Floor[]>([]);
+const initialFloors = projectId ? [] : [
+    {
+      id: '0',
+      level: 0,
+      selected: false,
+      isBase: true,
+      items: { ...defaultItems },
+      zones: []  // Add this
+    }
+  ];
+const [floors, setFloors] = useState<Floor[]>(initialFloors);
 const [floorNames, setFloorNames] = useState<Record<number, string>>({});
 const [cameras, setCameras] = useState<[]>([]);
 const [cams, setCams] = useState<Record<string, string[]>>({});
@@ -153,7 +164,24 @@ useEffect(() => {
 
         })
         .catch(error => console.error('Error fetching floors:', error));
-  }}, []);
+  } else {
+    setFloors(currentFloors => {
+      const baseFloor = currentFloors[0];
+
+      const additionalFloors = Array.from({ length: floorCount }, (_, index) => ({
+        id: String(index + 1),
+        level: index + 1,
+        selected: false,
+        isBase: false,
+        items: { ...defaultItems },
+        zones: []  // Add this
+      }));
+
+      return [baseFloor, ...additionalFloors];
+    });
+  }
+
+  }, [floorCount]);
 
 
 
@@ -432,7 +460,8 @@ function updateDB(projectId: string, action: string, itemName: string, itemId: n
     <div className="flex h-screen bg-white">
       {step < 4 ? (
         <Sidebar
-          floorCount={floors.length}
+          floorCount={floorCount}
+          setFloorCount={setFloorCount}
           activeFloor={activeFloor}
           setActiveFloor={setActiveFloor}
           buildingItems={buildingItems}

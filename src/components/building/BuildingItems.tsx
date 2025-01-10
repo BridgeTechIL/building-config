@@ -46,7 +46,7 @@ export default function BuildingItems({ items, onUpdateItem, onUpdateHoistItem }
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <item.icon size={24} className="text-gray-600" />
-              <span>{item.label}</span>
+              <span className="text-black">{item.label}</span>
             </div>
             <div className="flex items-center gap-3">
               <button 
@@ -68,7 +68,7 @@ export default function BuildingItems({ items, onUpdateItem, onUpdateHoistItem }
       ))}
 
       {/* Hoist System */}
-      <div className="bg-white rounded-lg p-4 shadow-sm">
+      <div className="bg-white rounded-lg p-4 shadow-sm text-black">
         <div className="flex items-center gap-3 mb-4">
           <Cog size={24} className="text-gray-600" />
           <span>Hoist System</span>

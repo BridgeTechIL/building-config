@@ -92,11 +92,11 @@ export default function CostReview({ projectData, floors, buildingItems }: CostR
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Building className="text-gray-400" size={20} />
-            <h2 className="text-lg font-semibold">Order Summary</h2>
+            <h2 className="text-lg font-semibold text-black">Order Summary</h2>
             <span className="text-sm text-gray-500 ml-2">{orderNumber}</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-6 text-black">
             <div>
               <div className="text-sm text-gray-500">Name</div>
               <div>{projectData.name}</div>
@@ -121,7 +121,7 @@ export default function CostReview({ projectData, floors, buildingItems }: CostR
 
         {/* Floor Planning */}
         {floorsWithItems.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4 text-black">
             <div className="flex items-center justify-between">
               <h3 className="font-medium">Floor Planning</h3>
               <span className="text-sm text-gray-500">{getTotalItemCount()} Items</span>
@@ -173,7 +173,7 @@ export default function CostReview({ projectData, floors, buildingItems }: CostR
 
         {/* Building Items */}
         {hasBuildingItems && (
-          <div className="space-y-4">
+          <div className="space-y-4 text-black">
             <h3 className="font-medium">Building Items</h3>
             <div className="bg-gray-50 rounded-lg">
               <div className="px-4 py-2 text-sm text-gray-500 grid grid-cols-3">
@@ -215,7 +215,7 @@ export default function CostReview({ projectData, floors, buildingItems }: CostR
         )}
 
         {/* Total */}
-        <div className="bg-white rounded-lg border p-6">
+        <div className="bg-white rounded-lg border p-6 text-black">
           <div className="flex justify-between items-center">
             <div>
               <div className="text-xl font-semibold">Total</div>
