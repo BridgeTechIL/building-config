@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import {Suspense, useEffect, useRef, useState} from 'react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import Footer from '@/components/layout/Footer'
@@ -8,11 +8,18 @@ import FloorConfig from '@/components/forms/FloorConfig'
 import Steps from '@/components/layout/Steps'
 import CostReview from '@/components/forms/CostReview'
 import ProjectManagement from '@/components/forms/ProjectManagement'
-import { ProjectBasicInfo } from '@/types/building'
-import { calculateItemCost, getItemName } from '@/config/costs'
-import { Floor, Zone } from '@/types/building'
+import {Floor, ProjectBasicInfo, Zone} from '@/types/building'
+import {calculateItemCost, getItemName} from '@/config/costs'
+import {useSearchParams} from "next/navigation"
 
-const TOTAL_FLOORS = 25;
+type SearchParamsRenderProp = (params: { projectId: string | null }) => React.ReactElement
+
+// Update the provider with correct typing
+function SearchParamsProvider({ children }: { children: SearchParamsRenderProp }) {
+  const searchParams = useSearchParams()
+  const projectId = searchParams.get('project_id')
+  return children({ projectId })
+}
 
 const defaultItems = {
   gate: 0,
@@ -35,49 +42,11 @@ interface BuildingItems {
   };
 }
 
-// Initial zones data
-const initialZones = [
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 4, xy: [50, 25], is_exact: true } },
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 5, xy: [50, 25], is_exact: true } },
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 6, xy: [50, 25], is_exact: true } },
-  { name: 'איזור לובי', is_wifi: false, is_dangerous: false, location: { floor_physical: 7, xy: [50, 25], is_exact: true } },
-  { name: 'דירה 1', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 25], is_exact: true } },
-  { name: 'דירה 2', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [25, 75], is_exact: true } },
-  { name: 'דירה 3', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 25], is_exact: true } },
-  { name: 'דירה 4', is_wifi: false, is_dangerous: false, location: { floor_physical: 9, xy: [75, 75], is_exact: true } },
-
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 25], is_exact: true } },
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [25, 75], is_exact: true } },
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 25], is_exact: true } },
-  { name: 'גג', is_wifi: false, is_dangerous: true, location: { floor_physical: 24, xy: [75, 75], is_exact: true } },
-
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 23, xy: [75, 75], is_exact: true } },
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 22, xy: [75, 75], is_exact: true } },
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 21, xy: [75, 75], is_exact: true } },
-  { name: 'מרפסת', is_wifi: false, is_dangerous: true, location: { floor_physical: 20, xy: [75, 75], is_exact: true } },
-
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 0, xy: [75, 25], is_exact: true } },
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 1, xy: [75, 25], is_exact: true } },
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 2, xy: [75, 25], is_exact: true } },
-  { name: 'חניון 1 ', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 25], is_exact: true } },
-  { name: 'חניון 2', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 75], is_exact: true } },
-  { name: 'חניון 3', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [25, 75], is_exact: true } },
-  { name: 'חניון 4', is_wifi: true, is_dangerous: false, location: { floor_physical: 3, xy: [75, 25], is_exact: true } },
-
-]
-
-export default function Home() {
-  const [step, setStep] = useState(1)
-  const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined)
+function HomeContent({ projectId }: { projectId: string | null }) {
+  const initialState = projectId ? 4 : 1;
+  const [step, setStep] = useState(initialState);
+  const [floorCount, setFloorCount] = useState(0)
+  const [activeFloor, setActiveFloor] = useState<number | undefined>(undefined);
   const [projectData, setProjectData] = useState<ProjectBasicInfo>({
     name: '',
     installationDate: '',
@@ -98,50 +67,123 @@ export default function Home() {
   });
 
   // Modified floors state initialization
-  const [floors, setFloors] = useState<Floor[]>(() => {
-    // Convert initial zones to the proper format and group by floor
-    const zonesByFloor: { [floorLevel: number]: Zone[] } = {};
-    initialZones.forEach((zone, index) => {
-      const floorLevel = zone.location.floor_physical;
-      if (!zonesByFloor[floorLevel]) {
-        zonesByFloor[floorLevel] = [];
-      }
-
-      zonesByFloor[floorLevel].push({
-        id: `zone_${index}`,
-        name: zone.name,
-        isWifiPoint: zone.is_wifi,
-        isDangerPoint: zone.is_dangerous,
-        gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
-        location: {
-          floor_physical: zone.location.floor_physical,
-          xy: zone.location.xy as [number, number], // Type assertion here
-          is_exact: zone.location.is_exact
-        }
-      });
-    });
-
-    // Create initial floors array with zones
-    const baseFloor = {
+const initialFloors = projectId ? [] : [
+    {
       id: '0',
       level: 0,
       selected: false,
       isBase: true,
       items: { ...defaultItems },
-      zones: zonesByFloor[0] || []
-    };
+      zones: []  // Add this
+    }
+  ];
+const [floors, setFloors] = useState<Floor[]>(initialFloors);
+const [floorNames, setFloorNames] = useState<Record<number, string>>({});
+const [cameras, setCameras] = useState<[]>([]);
+const [cams, setCams] = useState<Record<string, string[]>>({});
+const [devicesCameras, setDevicesCameras] = useState<Record<string, string>>({});
+useEffect(() => {
 
-    const additionalFloors = Array.from({ length: TOTAL_FLOORS }, (_, index) => ({
-      id: String(index + 1),
-      level: index + 1,
-      selected: false,
-      isBase: false,
-      items: { ...defaultItems },
-      zones: zonesByFloor[index + 1] || []
-    }));
+  if (projectId) {
+    fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
+        .then(response => response.json())
+        .then(data => {
 
-    return [baseFloor, ...additionalFloors];
-  });
+          const projectName = data.project_name;
+          updateProjectField('name', projectName);
+          const hideElements = document.querySelectorAll('.hideOnProjectView');
+          hideElements.forEach(element => {
+              element.classList.add('hidden');
+          });
+
+          const fetchedZones = data.zones.map((zone: any) => ({
+            id: zone.id.toString(),
+            gateId: zone.box_id,
+            name: zone.display_name,
+            isDanger: zone.is_danger,
+            isWifi: false,
+            location: {
+              floor_physical: zone.floor_physical,
+              xy: [zone.location_x || Math.floor(Math.random() * 51) + 25, zone.location_y || Math.floor(Math.random() * 51) + 25],
+              size_xy: [zone.size_x? zone.size_x : 49, zone.size_y? zone.size_y : 49],
+              is_exact: true
+            }
+          }));
+
+          const wifiZones = data.access_points.map((ap: any) => ({
+            id: ap.id.toString(),
+            gateId: ap.id,
+            name: 'Access Point',
+            isDanger: false,
+            isWifi: true,
+            location: {
+              floor_physical: ap.floor_physical,
+              xy: [ap.location_x? ap.location_x : 50, ap.location_y? ap.location_y : 50],
+              size_xy: [ap.size_x? ap.size_x : 99, ap.size_y? ap.size_y : 99],
+              is_exact: true
+            }
+          }));
+
+          const fetchedFloors = Object.entries(data.floor_names).map(([key, value]) => ({
+            id: String(value),
+            level: parseInt(key, 10),
+            selected: false,
+            isBase: key === "0",
+            items: {...defaultItems},
+            zones: [...fetchedZones.filter((zone: any) => zone.location.floor_physical === parseInt(key, 10)), ...wifiZones.filter((zone: any) => zone.location.floor_physical === parseInt(key, 10))]
+          }));
+          const sortedFloors = [...fetchedFloors].sort((a, b) => b.level - a.level);
+          setFloors(sortedFloors);
+          setFloorNames(data.floor_names);
+
+          const cameras = data.cameras.map((cam: any) => ({
+            name: cam.display_name,
+            streamUrl: cam.stream_url,
+            location: {
+              floor_physical: cam.floor_physical,
+              xy: [cam.location_x, cam.location_y],
+              is_exact: true
+            }
+          }));
+          setCameras(cameras);
+
+
+          const fetchedCameras = Object.keys(data.floor_names).reduce((acc: any, floorId: string) => {
+            acc[floorId] = data.cameras
+              .filter((cam: any) => cam.floor_physical.toString() === floorId)
+              .map((cam: any) => cam.stream_url);
+            return acc;
+          }, {});
+
+          // Update cams object
+          setCams(fetchedCameras)
+
+          initializeIframeData(fetchedFloors, data.floor_names, cameras);
+
+          setDevicesCameras(data.devices_cameras);
+
+        })
+        .catch(error => console.error('Error fetching floors:', error));
+  } else {
+    setFloors(currentFloors => {
+      const baseFloor = currentFloors[0];
+
+      const additionalFloors = Array.from({ length: floorCount }, (_, index) => ({
+        id: String(index + 1),
+        level: index + 1,
+        selected: false,
+        isBase: false,
+        items: { ...defaultItems },
+        zones: []  // Add this
+      }));
+
+      return [baseFloor, ...additionalFloors];
+    });
+  }
+
+  }, [floorCount]);
+
+
 
   // Zone management functions
   const handleAddZone = (floorId: string) => {
@@ -151,8 +193,8 @@ export default function Home() {
     const newZone: Zone = {
       id: `zone_${Date.now()}`,
       name: `Zone ${floor.zones.length + 1}`,
-      isWifiPoint: false,
-      isDangerPoint: false,
+      isWifi: false,
+      isDanger: false,
       gateId: `GT${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
       location: {
         floor_physical: floor.level,
@@ -168,7 +210,6 @@ export default function Home() {
     );
 
     setFloors(updatedFloors);
-    updateIframeZones(updatedFloors);
   };
 
   const handleRemoveZone = (floorId: string, zoneId: string) => {
@@ -182,9 +223,40 @@ export default function Home() {
     updateIframeZones(updatedFloors);
   };
 
-  const handleUpdateZone = (floorId: string, zoneId: string, updates: Partial<Zone>) => {
+function updateDB(projectId: string, action: string, itemName: string, itemId: number, column: string, value: any): Promise<any> {
+  return fetch('https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      projectId,
+      action,
+      itemName,
+      itemId,
+      column,
+      value,
+    }),
+  })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        return response.json()
+      })
+      .catch(error => {
+        console.error('Error updating item:', error)
+      })
+}
+
+  const handleUpdateZone = (floor: number, zoneId: string, updates: Partial<Zone>) => {
+    if (projectId) {
+      const key = Object.keys(updates)[0];
+      const value = Object.values(updates)[0];
+      updateDB(projectId,'rename', 'zones', parseInt(zoneId, 10), key, value);
+    }
     const updatedFloors = floors.map(f =>
-      f.id === floorId
+      f.level === floor
         ? {
           ...f,
           zones: f.zones.map(z =>
@@ -204,8 +276,8 @@ export default function Home() {
         const iframeZones = updatedFloors.flatMap(floor =>
           floor.zones.map(zone => ({
             name: zone.name,
-            is_wifi: zone.isWifiPoint,      // Convert to iframe format
-            is_dangerous: zone.isDangerPoint, // Convert to iframe format
+            is_wifi: zone.isWifi,      // Convert to iframe format
+            is_dangerous: zone.isDanger, // Convert to iframe format
             location: zone.location
           }))
         );
@@ -223,8 +295,8 @@ export default function Home() {
         const iframeZones = updatedFloors.flatMap(floor =>
           floor.zones.map(zone => ({
             name: zone.name,
-            is_wifi: zone.isWifiPoint,
-            is_dangerous: zone.isDangerPoint,
+            is_wifi: zone.isWifi,
+            is_dangerous: zone.isDanger,
             location: zone.location
           }))
         );
@@ -356,45 +428,51 @@ export default function Home() {
     }));
   };
 
+  function initializeIframeData(floors: Floor[], floorNames: Record<number, string>, cameras: Array<object>) {
+    console.log('Initializing iframe data');
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+
+      const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void } & { updateFloorNames?: (names: Record<string, string>) => void };
+      const iframeDocument = contentWindow.document;
+      const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
+      if (floorAmount) {
+        floorAmount.value = String(floors.length);
+      }
+
+      if (typeof contentWindow.updateFloorNames === 'function') {
+        contentWindow.updateFloorNames(floorNames);
+      }
+      iframe.hidden = false;
+
+      if (typeof contentWindow.updateFloors === 'function') {
+        contentWindow.updateFloors();
+        updateIframeZones(floors);
+      }
+
+      if (typeof contentWindow.addCameras === 'function' && cameras.length > 0) {
+        contentWindow.addCameras(cameras);
+      }
+    }
+  }
+
   return (
     <div className="flex h-screen bg-white">
       {step < 4 ? (
         <Sidebar
-          floorCount={TOTAL_FLOORS}
+          floorCount={floorCount}
+          setFloorCount={setFloorCount}
           activeFloor={activeFloor}
           setActiveFloor={setActiveFloor}
           buildingItems={buildingItems}
         />
       ) : (
-        <div className="w-1/2 bg-white p-8 relative flex flex-col h-full">
+        <div className="w-1/2 bg-white relative flex flex-col h-full">
           <iframe
             src="/buildingModel.html"
             width="100%"
             height="100%"
-            onLoad={() => {
-              const iframe = document.querySelector('iframe');
-              if (iframe && iframe.contentWindow) {
-                const contentWindow = iframe.contentWindow as Window & typeof globalThis & { updateFloors?: () => void } & { showZones?: (zones: Array<object>) => void } & { addCameras?: (cams: Array<object>) => void };
-                const iframeDocument = contentWindow.document;
-                const floorAmount = iframeDocument.getElementById('floorInput') as HTMLInputElement | null;
-                if (floorAmount) {
-                  floorAmount.value = String(25);
-                }
-
-                if (typeof contentWindow.showZones === 'function') {
-                  updateIframeZones(floors);
-                }
-
-                if (typeof contentWindow.addCameras === 'function') {
-                  const cams = [
-                    { name: 'Left', streamUrl: 'https://player.castr.com/live_094d9a001ee811eda8c7d91f796d7ea9', location: { floor_physical: 1, xy: [70, 25], is_exact: true } },
-                    { name: 'Right', streamUrl: 'https://player.castr.com/live_0f4235e0186e11edaba527aa44cc5f75', location: { floor_physical: 5, xy: [35, 50], is_exact: true } },
-                    { name: 'Lobby', streamUrl: 'https://player.castr.com/live_4aff5df0551411edb095b3325e745ec8', location: { floor_physical: 3, xy: [5, 5], is_exact: true } },
-                  ]
-                  contentWindow.addCameras(cams);
-                }
-              }
-            }}
+            hidden
           ></iframe>
         </div>
       )}
@@ -403,7 +481,10 @@ export default function Home() {
           background: 'linear-gradient(180deg, white 0%, white 70%, #F7F7F7 100%)'
         }}>
         <Header projectName={step === 1 ? '' : projectData.name} />
-        <Steps currentStep={step} />
+        <Steps
+            currentStep={step}
+            devicesCameras={devicesCameras}
+        />
         <div className="flex-1 relative overflow-hidden">
           {step === 1 && (
             <BasicInfo
@@ -436,28 +517,39 @@ export default function Home() {
             <ProjectManagement
               onExport={handleExport}
               floors={floors}
+              floorNames={floorNames}
+              cams={cams}
+              projectId={projectId}
               onUpdateFloorOrder={updateFloorOrder}
-              onAddZone={handleAddZone}        // Add this
-              onRemoveZone={handleRemoveZone}  // Add this
-              onUpdateZone={handleUpdateZone}  // Add this
-              onUpdateFloor={(floorId, updates) => {
-                setFloors(prevFloors =>
-                  prevFloors.map(floor =>
-                    floor.id === floorId ? { ...floor, ...updates } : floor
-                  )
-                );
-              }}
+              onAddZone={handleAddZone}
+              onRemoveZone={handleRemoveZone}
+              onUpdateZone={handleUpdateZone}
+              updateDB={updateDB}
             />
           )}
         </div>
-        <Footer 
+        {step < 4 && (<Footer
           step={step} 
           setStep={handleStepChange} 
           canProgress={step === 1 ? projectData.name.trim() !== '' : true}
           status={projectData.status}
           onExport={handleExport}
-        />
+        /> )}
       </div>
     </div>
   );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    }>
+      <SearchParamsProvider>
+        {({ projectId }) => <HomeContent projectId={projectId} />}
+      </SearchParamsProvider>
+    </Suspense>
+  )
 }

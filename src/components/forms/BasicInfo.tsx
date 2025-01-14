@@ -66,7 +66,7 @@ const BasicInfo = forwardRef<{ validateName: () => boolean }, BasicInfoProps>(
             aria-required="true"
             aria-invalid={!!nameError}
             aria-describedby={nameError ? "nameError" : undefined}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent ${
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black ${
               nameError ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter name"
@@ -90,7 +90,7 @@ const BasicInfo = forwardRef<{ validateName: () => boolean }, BasicInfoProps>(
             type="date"
             value={formData.installationDate}
             onChange={(e) => updateField('installationDate', e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-black"
             placeholder=" "
           />
         </div>
@@ -106,7 +106,7 @@ const BasicInfo = forwardRef<{ validateName: () => boolean }, BasicInfoProps>(
             id="comments"
             value={formData.comments}
             onChange={(e) => updateField('comments', e.target.value)}
-            className="w-full pt-6 pb-2 px-4 border rounded-lg peer focus:ring-2 focus:ring-cyan-500 focus:border-transparent h-32 resize-none"
+            className="w-full pt-6 pb-2 px-4 border rounded-lg peer focus:ring-2 focus:ring-cyan-500 focus:border-transparent h-32 resize-none text-black"
             placeholder=" "
           />
         </div>

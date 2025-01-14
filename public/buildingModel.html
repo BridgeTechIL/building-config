@@ -7,6 +7,24 @@
     <style>
         body { margin: 0; }
         canvas { width: 100%; height: 100%; }
+        #pageTitle{
+            position: absolute;
+            top: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+        }
+        #legendText{
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: white;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
         #instructions {
             position: absolute;
             top: 10px;
@@ -93,11 +111,16 @@
     </style>
 </head>
 <body>
+    <h4 id="pageTitle" style="display: none">Hieeee</h4>
     <div id="instructions">
         W/S: Forward/Back<br>
         A/D: Left/Right<br>
         Q/E: Up/Down<br>
         Arrows: Rotate
+    </div>
+
+    <div id="legendText" onclick="window.showLegendModal()">
+        View Legend
     </div>
 
     <div id="controls">
@@ -166,11 +189,12 @@
             let scene, camera, renderer, controls, raycaster, mouse;
             window.activeFloorGroup = null;
             let isAnimating = false;
+            let extendedFloor = null;
             let totalFloors = 25;
             const buildingWidth = 30;
             const buildingDepth = 16;
             const floorHeight = 3;
-            const wallThickness = 0.1;
+            const wallThickness = 0.00001;
             let rojiBoxes = [];
             let elevators = [];
             let rojiBlinkInterval;
@@ -180,12 +204,10 @@
             let wifiFloors = new Set();
             let workers = [];
             let isWorkersVisible = false;
-            let ground_floor = 4;
+            let floorsNames = [];
             let dangerousQuadrants = new Set(); // Store dangerous quadrant identifiers
             let activeItems = [];
             let currentZones = [];
-            let itemTitle = null;
-            let titleSprite = null;
             window.activeMenu = null;
             let blinkingItems = new Set();
             let lastBlinkTime = 0;
@@ -212,17 +234,13 @@
 
                      // Clear any existing items
                      clearExistingItems();
-
-                     // Create and position title
-                     titleSprite = createTextSprite(title);
-                     titleSprite.position.set(0, totalFloors * floorHeight + 10, 0);
-                     titleSprite.scale.set(15, 4, 1);
-                     scene.add(titleSprite);
-                     activeItems.push(titleSprite);
+                     const pageTitle = document.getElementById('pageTitle');
+                     pageTitle.textContent = title;
+                     title? pageTitle.style.display = 'block' : pageTitle.style.display = 'none;'
 
                      // Create and position items
                      items.forEach(item => {
-                         const label = createTextSprite(item.tag_id, 40);
+                         // const label = createTextSprite(item.tag_id, 40);
 
                          const { floor_physical, xy, is_exact } = item.location;
                          const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
@@ -231,19 +249,19 @@
                          let finalZ = worldCoords.z;
 
                          if (!is_exact) {
-                             finalX = addRandomization(finalX, 2);
-                             finalZ = addRandomization(finalZ, 2);
+                             finalX = addRandomization(finalX, 5);
+                             finalZ = addRandomization(finalZ, 5);
                          }
 
                          const y = floor_physical * floorHeight + (floorHeight / 2);
 
-                         createItemSprite(type, finalX, y, finalZ);
+                         createItemSprite(type, finalX, y, finalZ, item.color || null, floor_physical);
 
 
-                         label.position.set(finalX, y + 1.5, finalZ);
-                         label.scale.set(5, 1, 1);
-                         scene.add(label);
-                         activeItems.push(label);
+                         // label.position.set(finalX, y + 1.5, finalZ);
+                         // label.scale.set(5, 1, 1);
+                         // scene.add(label);
+                         // activeItems.push(label);
 
                      });
 
@@ -254,7 +272,7 @@
 
             function createTextSprite(text, size = 70) {
                 const canvas = document.createElement('canvas');
-                canvas.width = 512;
+                canvas.width = 700;
                 canvas.height = 128;
                 const context = canvas.getContext('2d');
 
@@ -273,14 +291,17 @@
 
             function addZone(zone) {
                 const { name, is_wifi, is_dangerous, location } = zone;
-                const { floor_physical, xy, is_exact } = location;
-                const zoneGeometry = new THREE.BoxGeometry(buildingWidth/2 - 1, 0.3, buildingDepth/2 - 1);
-                const zoneMaterial = new THREE.MeshBasicMaterial({
-                    color: is_dangerous? 0xff0000 : is_wifi? 0xFFFF00 : 0x0000FF,
-                    transparent: true,
-                    opacity: 0.5
+                const { floor_physical, xy, is_exact, size_xy } = location;
+                const zoneGeometry = new THREE.BoxGeometry(buildingWidth * size_xy[0] / 100, wallThickness, buildingDepth * size_xy[1] / 100);
+                const material = new THREE.MeshStandardMaterial({
+                  emissive: is_dangerous? 0xff0000 : is_wifi? 0xFFFF00 : 0x0000FF,
+                  color: 0x000000,
+                  emissiveIntensity: 1, // Glow intensity
+                  transparent: true,
+                  opacity: 0.4
                 });
-                const zoneMesh = new THREE.Mesh(zoneGeometry, zoneMaterial);
+                const zoneMesh = new THREE.Mesh(zoneGeometry, material);
+                zoneMesh.name = `zone-${name}`;
                 const worldCoords = normalizedToWorldCoords(xy[0], xy[1], buildingWidth, buildingDepth);
                 let finalX = worldCoords.x;
                 let finalZ = worldCoords.z;
@@ -292,11 +313,21 @@
 
                 const y = floor_physical * floorHeight + (floorHeight / 2);
                 zoneMesh.position.set(finalX, y, finalZ);
-                scene.add(zoneMesh);
+                if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                    window.activeFloorGroup.add(zoneMesh);
+                    let clone = zoneMesh.clone();
+                    clone.visible = false
+                    scene.add(clone);
+                    currentZones.push(clone);
+                    window.activeFloorGroup.originalComponents.push(clone);
+                    zoneMesh.position.y = 0;
+                } else {
+                    scene.add(zoneMesh);
+                }
                 currentZones.push(zoneMesh);
             }
 
-            function createItemSprite(type, x, y, z) {
+            function createItemSprite(type, x, y, z, color, floor_physical) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 64;
                 canvas.height = 64;
@@ -308,30 +339,59 @@
                         const loader = new GLTFLoader();
                         loader.load(loaded_models[type]['path'], function (gltf) {
                             const model = gltf.scene
-                            model.scale.set(0.7, 0.7, 0.7);
-                            const isRed = Math.random() < 1 / 3;
-                            const modelColor = isRed ? 0xff0000 : 0xffff00;
+                            model.scale.set(1.5, 1.5, 1.5);
+                            const modelColor = color || 0xffff00;
+                            model.name = `item-${type}`;
                             model.traverse(child => {
                                 if (child.isMesh) {
-                                    child.material = new THREE.MeshBasicMaterial({ color: modelColor });
+                                    child.material = new THREE.MeshStandardMaterial({
+                                        color: 0x000000,
+                                        emissive: modelColor,
+                                        metalness: 1
+                                    });
                                 }
                             });
                             loaded_models[type]['obj'] = model;
                             model.position.set(x, y, z);
-                            scene.add(model);
+
+
+                            if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                                window.activeFloorGroup.add(model);
+                                let clone = model.clone();
+                                clone.visible = false
+                                scene.add(clone);
+                                activeItems.push(clone);
+                                window.activeFloorGroup.originalComponents.push(clone);
+                                model.position.y = 1;
+                            } else {
+                                scene.add(model);
+                            }
                             activeItems.push(model);
                         });
                     } else {
                         let model = loaded_models[type]['obj'].clone();
                         model.position.set(x, y, z);
-                        const isRed = Math.random() < 1 / 3;
-                        const modelColor = isRed ? 0xff0000 : 0xffff00;
+                        const modelColor = color || 0xffff00;
                         model.traverse(child => {
                             if (child.isMesh) {
-                                child.material = new THREE.MeshBasicMaterial({ color: modelColor });
+                                child.material = new THREE.MeshStandardMaterial({
+                                    color: 0x000000,
+                                    emissive: modelColor,
+                                    metalness: 1
+                                });
                             }
                         });
-                        scene.add(model);
+                        if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                            window.activeFloorGroup.add(model);
+                            let clone = model.clone();
+                            clone.visible = false
+                            scene.add(clone);
+                            activeItems.push(clone);
+                            window.activeFloorGroup.originalComponents.push(clone);
+                            model.position.y = 1;
+                        } else {
+                            scene.add(model);
+                        }
                         activeItems.push(model);
                     }
                 } else if (type === 'equipment') {
@@ -345,10 +405,9 @@
                         opacity: 1
                     });
                     const sphere = new THREE.Mesh(geometry, material);
+                    sphere.name = `item-${type}`;
                     sphere.position.set(x, y, z);
-                    scene.add(sphere);
-                    activeItems.push(sphere);
-                    blinkingItems.add(sphere);
+
 
                     // Add a glowing effect
                     const glowGeometry = new THREE.SphereGeometry(1.2, 32, 32);
@@ -358,6 +417,22 @@
                         opacity: 0.3
                     });
                     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+
+                    if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                        window.activeFloorGroup.add(sphere);
+                        let clone = sphere.clone();
+                        clone.visible = false
+                        scene.add(clone);
+                        activeItems.push(clone);
+                        blinkingItems.add(clone);
+                        clone.add(glow);
+                        window.activeFloorGroup.originalComponents.push(clone);
+                        sphere.position.y = 1;
+                    } else {
+                        scene.add(sphere);
+                    }
+                    activeItems.push(sphere);
+                    blinkingItems.add(sphere);
                     sphere.add(glow);
 
                 } else if (type === 'sensors') {
@@ -371,11 +446,6 @@
                         opacity: 1
                     });
                     const sphere = new THREE.Mesh(geometry, material);
-                    sphere.position.set(x, y, z);
-                    scene.add(sphere);
-                    activeItems.push(sphere);
-                    blinkingItems.add(sphere);
-
                     // Add a glowing effect
                     const glowGeometry = new THREE.SphereGeometry(1, 32, 32);
                     const glowMaterial = new THREE.MeshPhongMaterial({
@@ -384,6 +454,24 @@
                         opacity: 0.3
                     });
                     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    sphere.position.set(x, y, z);
+                    sphere.name = `item-${type}`;
+
+                    if (window.extendedFloor !== null && window.extendedFloor === floor_physical) {
+                        window.activeFloorGroup.add(sphere);
+                        let clone = sphere.clone();
+                        clone.visible = false
+                        scene.add(clone);
+                        activeItems.push(clone);
+                        blinkingItems.add(clone);
+                        window.activeFloorGroup.originalComponents.push(clone);
+                        sphere.position.y = 1;
+                        clone.add(glow);
+                    } else {
+                        scene.add(sphere);
+                    }
+                    activeItems.push(sphere);
+                    blinkingItems.add(sphere);
                     sphere.add(glow);
                 }
 
@@ -406,14 +494,15 @@
             // Add this function to clear existing items
             function clearExistingItems() {
                 activeItems.forEach(item => {
-                    scene.remove(item);
+                    if (item.parent) {
+                        item.parent.remove(item);
+                        scene.remove(item);
+                    } else {
+                        scene.remove(item);
+                    }
                 });
                 activeItems = [];
 
-                if (titleSprite) {
-                    scene.remove(titleSprite);
-                    titleSprite = null;
-                }
             }
 
             function createHelmetSprite(color) {
@@ -494,19 +583,23 @@
                 createBuilding();
                 // createBuildingLines();
 
-                camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
-                camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.8);
+                // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                 raycaster.setFromCamera(mouse, camera);
+                scene.rotation.y += 0.5;
                 
                 
                 animate();
             }
 
             const materials = {
-                floor: new THREE.MeshBasicMaterial({
+                floor: new THREE.MeshPhongMaterial({
                     color: 0xcccccc,
                     transparent: true,
-                    opacity: 0.2
+                    opacity: 0,
+                    side: THREE.DoubleSide, // Make sure it renders on both sides
+                    emissive: 0x000000,
+                    shininess: 10, // Minimal shininess for a polished look
                 }),
                 // floor: new THREE.MeshPhongMaterial({
                 //     color: 0xcccccc,
@@ -519,9 +612,8 @@
                     
                 // }),
                 underground: new THREE.MeshBasicMaterial({
-                    color: 0x039BE5,
-                    transparent: true,
-                    opacity: 0.3
+                    color: 0xcccccc,
+                    transparent: 0,
                 }),
                 elevator: new THREE.MeshBasicMaterial({
                     color: 0x0066ff,
@@ -590,8 +682,8 @@
                 context.font = 'Bold 400px Arial';
                 context.fillStyle = 'black';
                 context.textAlign = 'center';
-                let floorName = floor - ground_floor;
-                context.fillText(floor === ground_floor ? 'L' : floorName, 512, 612);
+                let floorName = floorsNames[`${floor}`] || `${floor}`;
+                context.fillText(floorName, 512, 612);
 
                 const texture = new THREE.CanvasTexture(canvas);
                 const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
@@ -724,11 +816,11 @@
             const CONSTANT_LOOK_AT = {
                 ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, 0),
                 ZOOMED_OUT: new THREE.Vector3(-10, totalFloors * floorHeight / 2, 0),
-            } 
+            }
 
             const CAMERA_POSITIONS = {
-                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 3),
-                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, buildingDepth * 5)
+                ZOOMED_IN: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 2.8),
+                ZOOMED_OUT: new THREE.Vector3(0, totalFloors * floorHeight / 2, totalFloors * 4)
             };
 
             // Track camera state independently of floor state
@@ -764,7 +856,7 @@
                         // Camera animation - only if we're fully closing the floor view
                         if (floorNumber === null) {
                             camera.position.lerp(CAMERA_POSITIONS.ZOOMED_IN, easing);
-                            camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_IN);
+                            // camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_IN);
                             raycaster.setFromCamera(mouse, camera);
                             if (progress === 1) {
                                 isCameraZoomedOut = false;
@@ -782,6 +874,7 @@
 
                             scene.remove(currentGroup);
                             window.activeFloorGroup = null;
+                            window.extendedFloor = null;
 
                             if (floorNumber !== null) {
                                 setTimeout(() => {
@@ -808,7 +901,7 @@
                 // Helper function to check if an object belongs to this floor
                 const isInFloorRange = (position) => {
                     return position.y >= floorY - wallThickness / 2 &&
-                        position.y <= floorY + floorHeight + wallThickness / 2;
+                        position.y < floorY + floorHeight;
                 };
 
                 // Collect and clone floor components
@@ -820,6 +913,15 @@
                         child.visible = false;
                         clone.position.sub(new THREE.Vector3(0, floorY, 0));
                         floorGroup.add(clone);
+                        if (child.name && child.name.includes('zone')) {
+                            currentZones.push(clone);
+                        }
+                        if (child.name && child.name.includes('item')) {
+                            activeItems.push(clone);
+                            if (child.name.includes('equipment') || child.name.includes('sensors')) {
+                                blinkingItems.add(clone);
+                            }
+                        }
 
                         if (child.children.length > 0) {
                             child.children.forEach(childObj => {
@@ -837,6 +939,7 @@
                 window.activeFloorGroup.originalComponents = scene.children.filter(child =>
                     isInFloorRange(child.position)
                 );
+                window.extendedFloor = floorNumber;
 
                 const slideDistance = buildingWidth * -1.5;
                 let startTime = null;
@@ -861,7 +964,7 @@
                     // Camera animation - only if we're not already zoomed out
                     if (!isCameraZoomedOut) {
                         camera.position.lerp(CAMERA_POSITIONS.ZOOMED_OUT, easing);
-                        camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_OUT);
+                        // camera.lookAt(CONSTANT_LOOK_AT.ZOOMED_OUT);
                         raycaster.setFromCamera(mouse, camera);
                         if (progress === 1) {
                             isCameraZoomedOut = true;
@@ -915,7 +1018,7 @@
                     // Add roof at the top floor
                     if (floor === totalFloors) {
                         const roofGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
-                        const roofMesh = new THREE.Mesh(roofGeometry, materials.floor.clone());
+                            const roofMesh = new THREE.Mesh(roofGeometry, materials.underground);
                         roofMesh.position.y = floor * floorHeight;
                         scene.add(roofMesh);
                         break;
@@ -923,7 +1026,7 @@
 
                     // Create floor plane
                     const floorGeometry = new THREE.BoxGeometry(buildingWidth, wallThickness, buildingDepth);
-                    const floorMaterial = floor < ground_floor ? materials.underground.clone() : materials.floor.clone();
+                    const floorMaterial = floor === 0 ? materials.underground : materials.floor;
                     const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
                     floorMesh.position.y = floor * floorHeight;
                     floorMesh.isFloor = true;
@@ -944,7 +1047,8 @@
                         // Front wall
                         {
                             geometry: new THREE.BoxGeometry(buildingWidth, sectionHeight, wallThickness),
-                            position: [0, floor * floorHeight + floorHeight / 2, buildingDepth / 2]
+                            position: [0, floor * floorHeight + floorHeight / 2, buildingDepth / 2],
+                            isFrontWall: true
                         },
                         // Back wall
                         {
@@ -956,6 +1060,9 @@
                     walls.forEach(wall => {
                         const wallMesh = new THREE.Mesh(wall.geometry, wallMaterial);
                         wallMesh.position.set(...wall.position);
+                        if (wall.isFrontWall) {
+                            wallMesh.isFrontWall = true;
+                        }
                         scene.add(wallMesh);
 
                         // Add edges
@@ -987,6 +1094,10 @@
                                         wallHeight / 2,
                                         0
                                     );
+                                const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
+                                const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
+                                verticalLine.clickable = false;
+                                wallMesh.add(verticalLine);
                                 } else { // Left/right walls
                                     lineStart = new THREE.Vector3(
                                         0,
@@ -1000,9 +1111,6 @@
                                     );
                                 }
 
-                                const lineGeometry = new THREE.BufferGeometry().setFromPoints([lineStart, lineEnd]);
-                                const verticalLine = new THREE.Line(lineGeometry, edgeMaterial);
-                                wallMesh.add(verticalLine);
                             }
                         }
                     });
@@ -1109,20 +1217,20 @@
                             return;
                         }
                     }
-                    const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
-
-                    if (floorIntersects.length > 0) {
-                        const clickedObject = floorIntersects[0].object;
-                        const floorNumber = Math.round(window.activeFloorGroup.position.y / floorHeight);
-
-                        createFloorMenu(
-                            event.clientX,
-                            event.clientY,
-                            clickedObject,
-                            floorNumber
-                        );
-                        return;
-                    }
+                    // const floorIntersects = raycaster.intersectObjects(window.activeFloorGroup.children, true);
+                    //
+                    // if (floorIntersects.length > 0) {
+                    //     const clickedObject = floorIntersects[0].object;
+                    //     const floorNumber = Math.round(window.activeFloorGroup.position.y / floorHeight);
+                    //
+                    //     createFloorMenu(
+                    //         event.clientX,
+                    //         event.clientY,
+                    //         clickedObject,
+                    //         floorNumber
+                    //     );
+                    //     return;
+                    // }
                 }
 
                 // Check all scene objects for regular floor selection
@@ -1134,13 +1242,13 @@
                         // Get the Y position of the intersected object
                         const objectY = intersect.object.position.y;
                         // Check if it's a floor or within a floor's height range
-                        return intersect.object.isFloor ||
+                        return intersect.object.isFrontWall &&
                             (objectY % floorHeight < floorHeight + wallThickness &&
                                 objectY % floorHeight > -wallThickness);
                     });
 
                     if (floorComponent) {
-                        const floorNumber = Math.round(floorComponent.object.position.y / floorHeight);
+                        const floorNumber = Math.floor(floorComponent.object.position.y / floorHeight);
                         createAnimatedFloorView(floorNumber);
                     }
                 } else {
@@ -1149,7 +1257,7 @@
                         const objectY = intersect.object.position.y;
                         const currentFloorY = window.activeFloorGroup.position.y;
 
-                        return (intersect.object.isFloor ||
+                        return (intersect.object.isFrontWall &&
                             (objectY % floorHeight < floorHeight + wallThickness &&
                                 objectY % floorHeight > -wallThickness)) &&
                             Math.abs(Math.round(objectY / floorHeight) -
@@ -1157,7 +1265,7 @@
                     });
 
                     if (floorComponent) {
-                        const floorNumber = Math.round(floorComponent.object.position.y / floorHeight);
+                        const floorNumber = Math.floor(floorComponent.object.position.y / floorHeight);
                         createAnimatedFloorView(floorNumber);
                     }
                     else if (sceneIntersects.length === 0) {
@@ -1302,24 +1410,23 @@
                 }
             }
 
-            function showFloorInfo(floorNumber) {
+            window.showLegendModal = function () {
+                const img = document.createElement('img');
+                img.src = 'legend.png';
+                img.style.width = '100%';
                 const modal = document.getElementById('floorInfoModal');
                 const title = document.getElementById('floorInfoTitle');
-                // const content = document.getElementById('floorInfoContent');
-
-                // Set floor name (L for lobby floor, number for others)
-                const floorName = floorNumber === ground_floor ? 'Lobby' : (floorNumber - ground_floor).toString();
-                title.textContent = `Floor ${floorName}`;
-
-                // Add floor information
-                // content.innerHTML = `
-                //     <p>Height: ${(floorNumber * floorHeight).toFixed(1)}m</p>
-                //     <p>WIFI: ${wifiFloors.has(floorNumber) ? 'Enabled' : 'Disabled'}</p>
-                // `;
-
+                const content = document.getElementById('floorInfoContent');
+                title.textContent = 'Legend';
+                content.innerHTML = '';
+                content.appendChild(img);
                 modal.style.display = 'block';
-            }
+                if (window.activeMenu) {
+                    document.body.removeChild(window.activeMenu);
+                    window.activeMenu = null;
 
+                }
+            }
             window.replaceWithIframe = function (url) {
                 const contentDiv = document.getElementById('floorInfoContent');
 
@@ -1473,7 +1580,6 @@
                                 floor * floorHeight + floorHeight / 2,
                                 randLocation.y
                             );
-                            helmet.scale.set(2, 2, 2);
 
                             // Add worker group metadata
                             helmet.userData = { group: selectedGroup };
@@ -1532,31 +1638,24 @@
                     createBuilding();
                     // createBuildingLines();
                     if (isWorkersVisible) { toggleWorkers(); }
-                    camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
-                    camera.lookAt(0, totalFloors * floorHeight / 2, 0);
+                    camera.position.set(0, totalFloors * floorHeight / 2, totalFloors * 2.8);
+                    // camera.lookAt(0, totalFloors * floorHeight / 2, 0);
                     raycaster.setFromCamera(mouse, camera);
                 }
                 document.getElementById('floorModal').style.display = 'none';
             }
 
-            window.updateLobbyFloor = function () {
-                const newLobbyFloor = parseInt(document.getElementById('lobbyFloorInput').value);
-                while (scene.children.length > 0) {
-                    scene.remove(scene.children[0]);
-                }
-                ground_floor = newLobbyFloor;
-                createBuilding();
-                // createBuildingLines();
-                if (isWorkersVisible) { toggleWorkers(); }
-                camera.position.set(0, totalFloors * floorHeight / 2, buildingDepth * 3);
-                camera.lookAt(0, totalFloors * floorHeight / 2, 0);
-                raycaster.setFromCamera(mouse, camera);
-                document.getElementById('lobbyFloorModal').style.display = 'none';
+            window.updateFloorNames = function (names) {
+                floorsNames = names;
             }
 
             window.showZones = function(zones) {
                 currentZones.forEach(item => {
-                    scene.remove(item);
+                    if (item.parent) {
+                        item.parent.remove(item);
+                    } else {
+                        scene.remove(item);
+                    }
                 });
                 currentZones = [];
                 zones.forEach(zone => {
@@ -1585,6 +1684,7 @@
 
                                 const y = floor_physical * floorHeight + 1;
                                 camModelClone.position.set(finalX, y, finalZ);
+                                // camModelClone.lookAt(-10, y, 0);
                                 camModelClone.traverse((child) => {
                                     if (child instanceof THREE.Mesh && child.geometry) {
                                         const camGeometry = child.geometry;

@@ -13,8 +13,8 @@ export function convertIframeZonesToFloorZones(iframeZones: { name: string; is_w
         floorZones[floorId].push({
             id: `zone-${index}`,
             name: zone.name,
-            isWifiPoint: zone.is_wifi,
-            isDangerPoint: zone.is_dangerous,
+            isWifi: zone.is_wifi,
+            isDanger: zone.is_dangerous,
             gateId: `GATE-${floorId}-${index}`,
             location: {
                 floor_physical: zone.location.floor_physical,
@@ -31,8 +31,8 @@ export function convertFloorZonesToIframeZones(floors: Floor[]) {
     return floors.flatMap(floor =>
         floor.zones.map(zone => ({
             name: zone.name,
-            is_wifi: zone.isWifiPoint,
-            is_dangerous: zone.isDangerPoint,
+            is_wifi: zone.isWifi,
+            is_dangerous: zone.isDanger,
             location: zone.location
         }))
     );

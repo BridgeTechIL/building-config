@@ -103,7 +103,7 @@ function FloorItemComponent({ floor, isExpanded, isSelected, onToggleExpand, onU
           <GripVertical size={20} />
         </div>
         <div className="flex-1 flex items-center gap-4 ml-2">
-          <span className="font-medium text-lg">
+          <span className="font-medium text-lg text-gray-600">
             {floor.isBase ? 'Ground Floor' : `Level ${floor.level}`}
           </span>
           <div className="flex items-center gap-2">
@@ -145,19 +145,19 @@ function FloorItemComponent({ floor, isExpanded, isSelected, onToggleExpand, onU
                 <div key={key} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Icon size={24} className="text-gray-600" />
-                    <span>{label}</span>
+                    <span className="text-black">{label}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button 
                       onClick={() => handleUpdateItem(key, Math.max(0, (floor.items[key] || 0) - 1))}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-black"
                     >
                       -
                     </button>
-                    <span className="w-8 text-center">{floor.items[key] || 0}</span>
+                    <span className="w-8 text-center text-black">{floor.items[key] || 0}</span>
                     <button 
                       onClick={() => handleUpdateItem(key, (floor.items[key] || 0) + 1)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-black"
                     >
                       +
                     </button>
@@ -174,7 +174,6 @@ function FloorItemComponent({ floor, isExpanded, isSelected, onToggleExpand, onU
 
 export default function FloorList({ floors, activeFloor, onUpdateItem, onUpdateOrder, onClearItems }: FloorListProps) {
   const [expandedFloorId, setExpandedFloorId] = useState<string | null>(null);
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
