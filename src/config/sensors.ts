@@ -2,6 +2,7 @@
 export interface Sensor {
   tagId: string;
   name: string;
+  floor_name: string;
   type: string;
   location: {
     floor_physical: number;
