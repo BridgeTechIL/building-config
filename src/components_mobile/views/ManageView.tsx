@@ -45,37 +45,6 @@ const ManageView: React.FC<ManageViewProps> = ({ onClose, onSelectItems, project
         return <div className="h-screen flex items-center justify-center">Loading...</div>;
     }
 
-    const onUpdateZone = (floorLevel, zoneId, updates) => {
-        if (projectId) {
-            // If there's a projectId, make an API call
-            Object.entries(updates).forEach(([key, value]) => {
-                updateItemInDatabase(
-                    projectId,
-                    'update',
-                    'zones',
-                    parseInt(zoneId, 10),
-                    key === 'name' ? 'display_name' : key === 'isDanger' ? 'is_danger' : key,
-                    value
-                );
-            });
-        }
-
-        // Update the local state
-        setProjectData(prev => ({
-            ...prev,
-            zones: prev.zones.map(zone =>
-                zone.id.toString() === zoneId.toString()
-                    ? {
-                        ...zone,
-                        display_name: updates.name || zone.display_name || zone.name,
-                        is_danger: updates.isDanger !== undefined ? updates.isDanger : zone.is_danger,
-                        isDanger: updates.isDanger !== undefined ? updates.isDanger : zone.isDanger
-                    }
-                    : zone
-            )
-        }));
-    };
-
     // Calculate counts for the overview
     const floorCount = Object.keys(projectData.floor_names).length;
     const zoneCount = projectData.zones?.length || 0;

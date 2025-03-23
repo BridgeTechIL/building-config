@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, MoreVertical, Search, Edit, AlertTriangle } from 'lucide-react';
 import { updateItemInDatabase } from '@/utils/dataUtils';
+import { Floor, Zone } from '@/types/building';
+
+// Enhanced Zone interface that accommodates both the imported interface and the component usage
+interface ZoneWithDisplay extends Zone {
+    display_name?: string;
+    is_danger?: boolean;
+    floor_physical?: number;
+}
 
 // Zone Item component for rendering individual zones
-const ZoneItem = ({ zone, index, onUpdateZone, floorLevel }) => {
+interface ZoneItemProps {
+    zone: ZoneWithDisplay;
+    index: number;
+    onUpdateZone: (floorLevel: number, zoneId: string, updates: any) => void;
+    floorLevel: number;
+}
+
+const ZoneItem: React.FC<ZoneItemProps> = ({ zone, index, onUpdateZone, floorLevel }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [zoneName, setZoneName] = useState(zone.display_name || zone.name || `Zone ${index + 1}`);
 
@@ -49,11 +64,17 @@ const ZoneItem = ({ zone, index, onUpdateZone, floorLevel }) => {
     );
 };
 
+// Define ProjectData interface to match the actual structure used
+interface ProjectData {
+    zones?: ZoneWithDisplay[];
+    floor_names?: Record<string, string>;
+}
+
 interface ZonesViewProps {
     onBack: () => void;
-    projectData: any;
+    projectData: ProjectData;
     projectId?: string | null;
-    floorNames?: Record<number, string>;
+    floorNames?: Record<string, string>;
 }
 
 const ZonesView: React.FC<ZonesViewProps> = ({
@@ -85,8 +106,9 @@ const ZonesView: React.FC<ZonesViewProps> = ({
 
     // Get zones for a specific floor
     const getZonesForFloor = (floorId: number) => {
-        return projectData.zones?.filter((zone: any) =>
-            zone.floor_physical === parseInt(floorId.toString(), 10)
+        return projectData.zones?.filter((zone: ZoneWithDisplay) =>
+            zone.floor_physical === parseInt(floorId.toString(), 10) ||
+            (zone.location && zone.location.floor_physical === parseInt(floorId.toString(), 10))
         ) || [];
     };
 
@@ -147,9 +169,9 @@ const ZonesView: React.FC<ZonesViewProps> = ({
                     const floorZones = getZonesForFloor(parseInt(floor.id));
                     const isExpanded = expandedFloors[floor.id];
                     const filterZones = searchQuery
-                        ? floorZones.filter((zone: any) =>
-                            zone.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            zone.box_id?.toString().toLowerCase().includes(searchQuery.toLowerCase()))
+                        ? floorZones.filter((zone: ZoneWithDisplay) =>
+                            (zone.display_name || zone.name || '')?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            zone.id?.toString().toLowerCase().includes(searchQuery.toLowerCase()))
                         : floorZones;
 
                     // Skip floors with no zones when searching

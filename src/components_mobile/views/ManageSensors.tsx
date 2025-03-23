@@ -9,12 +9,24 @@ interface SensorViewProps {
     updateDB?: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => Promise<any>;
 }
 
+// Define interface for SensorItem props
+interface SensorItemProps {
+    sensor: {
+        id: string;
+        name: string;
+        tagId: string;
+        groups: string[];
+    };
+    groups: Array<{ id: any; name: string; }>;
+    onUpdate: (id: string, updates: any) => void;
+}
+
 // Sensor item component for rendering individual sensors
-const SensorItem = ({ sensor, groups, onUpdate }) => {
+const SensorItem: React.FC<SensorItemProps> = ({ sensor, groups, onUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(sensor.name);
 
-    const handleGroupChange = (selectedGroups) => {
+    const handleGroupChange = (selectedGroups: any) => {
         onUpdate(sensor.id, { groups: selectedGroups });
     };
 
@@ -52,7 +64,7 @@ const SensorItem = ({ sensor, groups, onUpdate }) => {
             <div className="mt-2 pl-10 pr-2">
                 <MultiSelect
                     value={sensor.groups}
-                    options={groups.map(group => ({
+                    options={groups.map((group: { id: any; name: any; }) => ({
                         id: group.id,
                         name: group.name,
                         label: group.name,
@@ -66,8 +78,28 @@ const SensorItem = ({ sensor, groups, onUpdate }) => {
     );
 };
 
+// Interface for GroupItem props
+interface GroupItemProps {
+    group: {
+        id: string;
+        name: string;
+        color: string;
+    };
+    sensors: Array<{
+        id: string;
+        name: string;
+        tagId: string;
+        groups: string[];
+        type: string;
+    }>;
+    onUpdate: (id: string, updates: any) => void;
+    onDelete: (id: string) => void;
+    onColorChange: (color: string) => void;
+    onSensorUpdate: (id: string, updates: any) => void;
+}
+
 // Group item component for rendering groups
-const GroupItem = ({ group, sensors, onUpdate, onDelete, onColorChange, onSensorUpdate }) => {
+const GroupItem: React.FC<GroupItemProps> = ({ group, sensors, onUpdate, onDelete, onColorChange, onSensorUpdate }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(group.name);
@@ -195,7 +227,7 @@ const MobileSensorView: React.FC<SensorViewProps> = ({ onBack, projectId = null,
                     }));
 
                     // Create sensor groups based on types
-                    const uniqueTypes = Array.from(new Set(parsedSensors.map(sensor => sensor.type)));
+                    const uniqueTypes: Array<string> = Array.from(new Set<string>(parsedSensors.map((sensor: { type: string }) => sensor.type)));
                     const parsedGroups = uniqueTypes.map((type, index) => ({
                         id: type.toString(),
                         name: type.toString(),

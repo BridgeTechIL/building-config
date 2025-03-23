@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Search, List, ListTree, X } from 'lucide-react';
 import { getMockProjectData, updateItemInDatabase } from '@/utils/dataUtils';
 import { MultiSelect } from '@/components/ui/MultiSelect';
+import { Equipment, EquipmentGroup } from '@/config/equipment';
 
 interface EquipmentViewProps {
     onBack: () => void;
@@ -9,12 +10,23 @@ interface EquipmentViewProps {
     updateDB?: (projectId: string, action: string, itemName: string, itemId: number, column: string, value: any) => Promise<any>;
 }
 
+// Extended EquipmentGroup interface to include color property
+interface ExtendedEquipmentGroup extends EquipmentGroup {
+    color: string;
+}
+
 // Equipment item component for rendering individual equipment
-const EquipmentItem = ({ equipment, groups, onUpdate }) => {
+interface EquipmentItemProps {
+    equipment: Equipment;
+    groups: ExtendedEquipmentGroup[];
+    onUpdate: (id: string, updates: Partial<Equipment>) => void;
+}
+
+const EquipmentItem: React.FC<EquipmentItemProps> = ({ equipment, groups, onUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(equipment.name);
 
-    const handleGroupChange = (selectedGroups) => {
+    const handleGroupChange = (selectedGroups: string[]) => {
         onUpdate(equipment.id, { groups: selectedGroups });
     };
 
@@ -67,7 +79,23 @@ const EquipmentItem = ({ equipment, groups, onUpdate }) => {
 };
 
 // Group item component for rendering groups
-const GroupItem = ({ group, equipment, onUpdate, onDelete, onColorChange, onEquipmentUpdate }) => {
+interface GroupItemProps {
+    group: ExtendedEquipmentGroup;
+    equipment: Equipment[];
+    onUpdate: (id: string, updates: Partial<ExtendedEquipmentGroup>) => void;
+    onDelete: (id: string) => void;
+    onColorChange: (color: string) => void;
+    onEquipmentUpdate: (id: string, updates: Partial<Equipment>) => void;
+}
+
+const GroupItem: React.FC<GroupItemProps> = ({
+    group,
+    equipment,
+    onUpdate,
+    onDelete,
+    onColorChange,
+    onEquipmentUpdate
+}) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(group.name);
@@ -157,8 +185,8 @@ const GroupItem = ({ group, equipment, onUpdate, onDelete, onColorChange, onEqui
 const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId = null, updateDB }) => {
     const [viewMode, setViewMode] = useState<'equipment' | 'groups'>('equipment');
     const [searchQuery, setSearchQuery] = useState('');
-    const [equipment, setEquipment] = useState<any[]>([]);
-    const [equipmentGroups, setEquipmentGroups] = useState<any[]>([]);
+    const [equipment, setEquipment] = useState<Equipment[]>([]);
+    const [equipmentGroups, setEquipmentGroups] = useState<ExtendedEquipmentGroup[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Define group colors
@@ -187,6 +215,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
                         id: group.id.toString(),
                         name: group.name,
                         isActive: false,
+                        description: group.description || '',
                         color: Object.values(groupColors)[index % Object.keys(groupColors).length]
                     }));
 
@@ -194,7 +223,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
                         id: item.id.toString(),
                         tagId: item.tag_id.toString(),
                         floor_physical: item.floor,
-                        floor_name: item.floor_name,
+                        floor_name: item.floor_name || '',
                         xy: item.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
                         name: item.name || 'Unnamed Equipment',
                         type: item.type || 'Unknown',
@@ -211,6 +240,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
                         id: group.id.toString(),
                         name: group.name,
                         isActive: false,
+                        description: group.description || '',
                         color: Object.values(groupColors)[index % Object.keys(groupColors).length]
                     }));
 
@@ -218,7 +248,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
                         id: item.id.toString(),
                         tagId: item.tag_id.toString(),
                         floor_physical: item.floor,
-                        floor_name: item.floor_name,
+                        floor_name: item.floor_name || '',
                         xy: item.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
                         name: item.name || 'Unnamed Equipment',
                         type: item.type || 'Unknown',
@@ -238,7 +268,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
         fetchData();
     }, [projectId, groupColors]);
 
-    const handleEquipmentUpdate = (id: string, updates: any) => {
+    const handleEquipmentUpdate = (id: string, updates: Partial<Equipment>) => {
         if (projectId && updateDB) {
             const key = Object.keys(updates)[0];
             const value = Object.values(updates)[0];
@@ -256,7 +286,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
         ));
     };
 
-    const handleGroupUpdate = (id: string, updates: any) => {
+    const handleGroupUpdate = (id: string, updates: Partial<ExtendedEquipmentGroup>) => {
         if (projectId && updateDB) {
             const key = Object.keys(updates)[0];
             const value = Object.values(updates)[0];
@@ -284,7 +314,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
 
     const handleAddGroup = () => {
         const newGroupName = `Group ${equipmentGroups.length + 1}`;
-        const newGroup = {
+        const newGroup: ExtendedEquipmentGroup = {
             id: `temp_${Date.now()}`, // Temporary ID until API responds
             name: newGroupName,
             isActive: false,
@@ -384,7 +414,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
                     // Equipment View
                     <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-3">
                         {filteredEquipment.length > 0 ? (
-                            filteredEquipment.map((item, index) => (
+                            filteredEquipment.map((item) => (
                                 <EquipmentItem
                                     key={item.id}
                                     equipment={item}

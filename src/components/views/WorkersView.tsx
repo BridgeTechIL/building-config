@@ -23,7 +23,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
     const searchParams = useSearchParams(); // Access search params
     const projectId = searchParams.get('project_id'); // Get the "project_id" param
     const [showColorDropdown, setShowColorDropdown] = useState<string | null>(null);
-    const groupColors: { [key: string]: string } = {
+    const groupColors = React.useMemo(() => ({
         'Yellow': '#FFFF00',
         'Red': '#FF0000',
         'Blue': '#0000FF',
@@ -47,7 +47,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
         'Deep Purple': '#673AB7',
         'Light Green': '#8BC34A',
         'Orange': '#FF9800',
-    };
+    }), []);
 
     useEffect(() => {
         fetch(`https://us-central1-quiet-225015.cloudfunctions.net/manage-in-3d?project_id=${projectId}`)
@@ -80,7 +80,7 @@ const WorkersView = ({updateDB}: WorkersViewProps) => {
 
             })
             .catch(error => console.error('Error fetching workers:', error));
-    }, []);
+    }, [groupColors, projectId]);
 
     const [viewMode, setViewMode] = useState<ViewMode>('people');
     const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);

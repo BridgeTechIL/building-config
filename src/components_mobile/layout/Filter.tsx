@@ -20,6 +20,19 @@ interface MobileFilterProps {
     floorNames?: Record<number, string>;
 }
 
+// Extended interfaces for internal use
+interface ExtendedWorkerGroup extends WorkerGroup {
+    color: string;
+}
+
+interface DisplayableSensor extends Omit<Sensor, 'location'> {
+    location: {
+        floor_physical: number;
+        xy: [number, number];
+        is_exact: boolean;
+    };
+}
+
 const MobileFilter: React.FC<MobileFilterProps> = ({
     isOpen,
     onClose,
@@ -29,10 +42,10 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
 }) => {
     const [mode, setMode] = useState<FilterMode>('workers');
     const [workers, setWorkers] = useState<Worker[]>([]);
-    const [workerGroups, setWorkerGroups] = useState<WorkerGroup[]>([]);
+    const [workerGroups, setWorkerGroups] = useState<ExtendedWorkerGroup[]>([]);
     const [equipment, setEquipment] = useState<Equipment[]>([]);
     const [equipmentGroups, setEquipmentGroups] = useState<EquipmentGroup[]>([]);
-    const [sensors, setSensors] = useState<Sensor[]>([]);
+    const [sensors, setSensors] = useState<DisplayableSensor[]>([]);
     const [sensorTypes, setSensorTypes] = useState<SensorType[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -86,7 +99,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
             // Load all data types when filter opens
             if (workers.length === 0) {
                 // Load workers and groups
-                const parsedGroups = projectData.worker_groups.map((group, index) => ({
+                const parsedGroups = projectData.worker_groups.map((group: any, index: number) => ({
                     id: group.id.toString(),
                     name: group.name,
                     description: group.description || '',
@@ -95,21 +108,21 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                 }));
                 setWorkerGroups(parsedGroups);
 
-                const parsedWorkers = projectData.peeps.map(person => ({
+                const parsedWorkers = projectData.peeps.map((person: any) => ({
                     id: person.id.toString(),
                     tagId: person.tag_id.toString(),
+                    name: person.name ? person.name : 'Unnamed Worker',
                     floor_name: person.floor_name || (person.floor !== null ? floorNames[person.floor] || '-' : '-'),
                     floor_physical: person.floor ?? undefined,
                     xy: person.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
-                    name: person.name ? person.name : 'Unnamed Worker',
                     role: person.trade ? person.trade : 'Unknown',
-                    groups: person.groups ? person.groups.map(g => g.toString()) : [],
+                    groups: person.groups ? person.groups.map((g: any) => g.toString()) : [],
                 }));
                 setWorkers(parsedWorkers);
 
                 // Initialize expanded state for worker groups
                 const initialExpandedGroups: Record<string, boolean> = {};
-                parsedGroups.forEach(group => {
+                parsedGroups.forEach((group: ExtendedWorkerGroup) => {
                     initialExpandedGroups[group.id] = false;
                 });
                 setExpandedGroups(initialExpandedGroups);
@@ -117,7 +130,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
 
             if (equipment.length === 0) {
                 // Load equipment and groups
-                const parsedGroups = projectData.equipment_groups.map(group => ({
+                const parsedGroups = projectData.equipment_groups.map((group: any) => ({
                     id: group.id.toString(),
                     name: group.name,
                     description: group.description || '',
@@ -125,42 +138,44 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                 }));
                 setEquipmentGroups(parsedGroups);
 
-                const parsedEquipment = projectData.stuff.map(item => ({
+                const parsedEquipment = projectData.stuff.map((item: any) => ({
                     id: item.id.toString(),
                     tagId: item.tag_id.toString(),
-                    floor_physical: item.floor ?? undefined,
-                    floor_name: item.floor_name || (item.floor !== null ? floorNames[item.floor] || '-' : '-'),
                     name: item.name ? item.name : 'Unnamed Equipment',
-                    type: item.name ? item.name : 'Unnamed Equipment',
+                    floor_name: item.floor_name || (item.floor !== null ? floorNames[item.floor] || '-' : '-'),
+                    floor_physical: item.floor ?? undefined,
+                    type: item.type || 'Unknown',
                     xy: item.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
-                    groups: item.groups ? item.groups.map(group => group.toString()) : []
+                    groups: item.groups ? item.groups.map((group: any) => group.toString()) : []
                 }));
                 setEquipment(parsedEquipment);
             }
 
             if (sensors.length === 0) {
                 // Load sensors and types
-                const fetchedSensors = projectData.sensors.map(sensor => ({
+                const fetchedSensors = projectData.sensors.map((sensor: any) => ({
+                    id: sensor.id.toString(),
                     tagId: sensor.id.toString(),
-                    name: sensor.display_name,
+                    name: sensor.display_name || 'Unnamed Sensor',
                     floor_name: sensor.floor_name || (sensor.floor_physical ? floorNames[sensor.floor_physical] : '-'),
-                    type: sensor.type,
+                    type: sensor.type || 'Unknown',
                     location: {
                         floor_physical: sensor.floor_physical,
                         xy: [
                             sensor.location_x ?? Math.floor(Math.random() * 66) + 10,
                             sensor.location_y ?? Math.floor(Math.random() * 66) + 10
                         ] as [number, number],
-                        is_exact: true
+                        is_exact: Boolean(sensor.location_x && sensor.location_y)
                     }
                 }));
                 setSensors(fetchedSensors);
 
                 const fetchedTypes = Array.from(
                     new Set(fetchedSensors.map(sensor => sensor.type as string)) as Set<string>
-                ).map(type => ({
-                    id: type,
+                ).map((type, index) => ({
+                    id: `type_${index}`,
                     name: type,
+                    description: `${type} sensors`
                 }));
                 setSensorTypes(fetchedTypes);
             }
@@ -192,7 +207,8 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
         else if (mode === 'equipment') {
             return equipment.filter(item =>
                 item.name.toLowerCase().includes(query) ||
-                item.tagId.toLowerCase().includes(query)
+                item.tagId.toLowerCase().includes(query) ||
+                item.type.toLowerCase().includes(query)
             );
         }
         else if (mode === 'sensors') {
@@ -208,8 +224,8 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
 
     const getGroupedItems = () => {
         const query = searchQuery.toLowerCase();
-        let filteredItemsList: (Worker | Equipment | Sensor)[] = [];
-        let groupsList: (WorkerGroup | EquipmentGroup | SensorType)[] = [];
+        let filteredItemsList: (Worker | Equipment | DisplayableSensor)[] = [];
+        let groupsList: (ExtendedWorkerGroup | EquipmentGroup | SensorType)[] = [];
 
         if (mode === 'workers') {
             filteredItemsList = workers.filter(worker =>
@@ -222,7 +238,8 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
         else if (mode === 'equipment') {
             filteredItemsList = equipment.filter(item =>
                 item.name.toLowerCase().includes(query) ||
-                item.tagId.toLowerCase().includes(query)
+                item.tagId.toLowerCase().includes(query) ||
+                item.type.toLowerCase().includes(query)
             );
             groupsList = equipmentGroups;
         }
@@ -235,10 +252,10 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
             filteredItemsList = filteredSensors;
 
             // Group sensors by type
-            const typesMap: { [key: string]: { id: string; name: string; items: Sensor[] } } = {};
+            const typesMap: { [key: string]: { id: string; name: string; items: DisplayableSensor[] } } = {};
             sensorTypes.forEach(type => {
                 typesMap[type.name] = {
-                    id: type.name,
+                    id: type.id,
                     name: type.name,
                     items: []
                 };
@@ -261,7 +278,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                 description?: string;
                 isActive?: boolean;
                 color?: string;
-                items: (Worker | Equipment | Sensor)[];
+                items: (Worker | Equipment | DisplayableSensor)[];
             };
         }
         const groupedItems: GroupedItems = {};
@@ -273,14 +290,14 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                 name: group.name,
                 description: group.description,
                 isActive: 'isActive' in group ? group.isActive : undefined,
-                color: 'color' in group ? group.color : undefined,
+                color: 'color' in group ? (group as ExtendedWorkerGroup).color : undefined,
                 items: []
             };
         });
 
         // Assign items to their groups
         filteredItemsList.forEach(item => {
-            if (item.groups) {
+            if ('groups' in item && Array.isArray(item.groups)) {
                 item.groups.forEach(groupId => {
                     if (groupedItems[groupId]) {
                         groupedItems[groupId].items.push(item);
@@ -318,22 +335,6 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
             Object.values(selectedSensors).filter(Boolean).length;
     };
 
-    // Get selected count for current category
-    const getCurrentSelectedCount = () => {
-        return Object.values(getCurrentSelection()).filter(Boolean).length;
-    };
-
-    // Clear all selections
-    const handleClearSelection = () => {
-        if (mode === 'workers') {
-            setSelectedWorkers({});
-        } else if (mode === 'equipment') {
-            setSelectedEquipment({});
-        } else if (mode === 'sensors') {
-            setSelectedSensors({});
-        }
-    };
-
     // Clear all selections across all categories
     const handleClearAllSelections = () => {
         setSelectedWorkers({});
@@ -355,7 +356,6 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
         setCurrentSelection(newSelection);
     };
 
-    
     const showLocation = () => {
         // Get the selected objects from each category
         const selectedWorkerObjs = workers.filter(w => selectedWorkers[w.tagId]);
@@ -367,7 +367,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
             onSelectItems({
                 workers: selectedWorkerObjs,
                 equipment: selectedEquipmentObjs,
-                sensors: selectedSensorObjs
+                sensors: selectedSensorObjs as unknown as Sensor[]
             });
         }
 
@@ -502,14 +502,14 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                                         className="flex items-center p-2 bg-gray-50 cursor-pointer"
                                         onClick={() => toggleGroupExpanded(group.id)}
                                     >
-                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mr-3 ${group.items.every(item => getCurrentSelection()[item.tagId]) ? 'bg-cyan-500' : 'border border-gray-300'
+                                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mr-3 ${group.items.every((item: any) => getCurrentSelection()[item.tagId]) ? 'bg-cyan-500' : 'border border-gray-300'
                                             }`}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 toggleGroupSelection(group.id, group.items);
                                             }}
                                         >
-                                            {group.items.every(item => getCurrentSelection()[item.tagId]) &&
+                                            {group.items.every((item: any) => getCurrentSelection()[item.tagId]) &&
                                                 <Check size={16} className="text-white" />
                                             }
                                         </div>
@@ -530,7 +530,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
 
                                     {expandedGroups[group.id] && (
                                         <div className="p-1 pl-3">
-                                            {group.items.map(item => (
+                                            {group.items.map((item: any) => (
                                                 <div
                                                     key={item.tagId}
                                                     className="flex items-center justify-between p-1 border-b border-gray-100 last:border-0"

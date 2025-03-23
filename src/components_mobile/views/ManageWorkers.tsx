@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Search, List, ListTree, MoreVertical, Pencil, X } from 'lucide-react';
 import { getMockProjectData, updateItemInDatabase } from '@/utils/dataUtils';
 import { MultiSelect } from '@/components/ui/MultiSelect';
+import { Worker, WorkerGroup } from '@/config/workers';
 
 interface WorkersViewProps {
     onBack: () => void;
@@ -10,11 +11,11 @@ interface WorkersViewProps {
 }
 
 // Worker item component for rendering individual workers
-const WorkerItem = ({ worker, groups, onUpdate }) => {
+const WorkerItem = ({ worker, groups, onUpdate }: { worker: Worker, groups: WorkerGroup[], onUpdate: (id: string, updates: Partial<Worker>) => void }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(worker.name);
 
-    const handleGroupChange = (selectedGroups) => {
+    const handleGroupChange = (selectedGroups: string[]): void => {
         onUpdate(worker.id, { groups: selectedGroups });
     };
 
@@ -66,7 +67,13 @@ const WorkerItem = ({ worker, groups, onUpdate }) => {
     );
 };
 // Group item component for rendering groups
-const GroupItem = ({ group, workers, onUpdate, onDelete, onColorChange, onWorkerUpdate }) => {
+const GroupItem = ({ group, workers, onUpdate, onColorChange, onWorkerUpdate }: {
+    group: WorkerGroup;
+    workers: Worker[];
+    onUpdate: (id: string, updates: Partial<WorkerGroup>) => void;
+    onColorChange: (color: string) => void;
+    onWorkerUpdate: (id: string, updates: Partial<Worker>) => void;
+}) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState(group.name);
@@ -416,7 +423,6 @@ const MobileWorkersView: React.FC<WorkersViewProps> = ({ onBack, projectId = nul
                                     group={group}
                                     workers={workers}
                                     onUpdate={handleGroupUpdate}
-                                    onDelete={handleDeleteGroup}
                                     onColorChange={(color: string) => handleGroupUpdate(group.id, { color })}
                                     onWorkerUpdate={handleWorkerUpdate}
                                 />
