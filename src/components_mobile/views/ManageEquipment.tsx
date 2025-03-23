@@ -162,7 +162,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
     const [loading, setLoading] = useState(true);
 
     // Define group colors
-    const groupColors = {
+    const groupColors = React.useMemo(() => ({
         'Yellow': '#FFFF00',
         'Red': '#FF0000',
         'Blue': '#0000FF',
@@ -172,7 +172,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
         'Orange': '#FF9800',
         'Teal': '#009688',
         'Indigo': '#3F51B5'
-    };
+    }), []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -236,7 +236,7 @@ const MobileEquipmentView: React.FC<EquipmentViewProps> = ({ onBack, projectId =
         };
 
         fetchData();
-    }, [projectId]);
+    }, [projectId, groupColors]);
 
     const handleEquipmentUpdate = (id: string, updates: any) => {
         if (projectId && updateDB) {

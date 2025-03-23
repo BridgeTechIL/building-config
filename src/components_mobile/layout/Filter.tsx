@@ -99,7 +99,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                     id: person.id.toString(),
                     tagId: person.tag_id.toString(),
                     floor_name: person.floor_name || (person.floor !== null ? floorNames[person.floor] || '-' : '-'),
-                    floor_physical: person.floor,
+                    floor_physical: person.floor ?? undefined,
                     xy: person.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
                     name: person.name ? person.name : 'Unnamed Worker',
                     role: person.trade ? person.trade : 'Unknown',
@@ -128,7 +128,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
                 const parsedEquipment = projectData.stuff.map(item => ({
                     id: item.id.toString(),
                     tagId: item.tag_id.toString(),
-                    floor_physical: item.floor,
+                    floor_physical: item.floor ?? undefined,
                     floor_name: item.floor_name || (item.floor !== null ? floorNames[item.floor] || '-' : '-'),
                     name: item.name ? item.name : 'Unnamed Equipment',
                     type: item.name ? item.name : 'Unnamed Equipment',
@@ -167,7 +167,7 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
         };
 
         loadData();
-    }, [isOpen, projectId, floorNames]);
+    }, [isOpen, projectId, floorNames, equipment.length, sensors.length, workers.length]);
 
     const getRandomColor = (index: number) => {
         const colors = [

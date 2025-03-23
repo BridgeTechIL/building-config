@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Search, List, ListTree, X } from 'lucide-react';
 import { getMockProjectData, updateItemInDatabase } from '@/utils/dataUtils';
 import { MultiSelect } from '@/components/ui/MultiSelect';
@@ -162,7 +162,7 @@ const MobileSensorView: React.FC<SensorViewProps> = ({ onBack, projectId = null,
     const [loading, setLoading] = useState(true);
 
     // Define group colors
-    const groupColors = {
+    const groupColors = useMemo(() => ({
         'Yellow': '#FFFF00',
         'Red': '#FF0000',
         'Blue': '#0000FF',
@@ -172,7 +172,7 @@ const MobileSensorView: React.FC<SensorViewProps> = ({ onBack, projectId = null,
         'Orange': '#FF9800',
         'Teal': '#009688',
         'Indigo': '#3F51B5'
-    };
+    }), []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -240,7 +240,7 @@ const MobileSensorView: React.FC<SensorViewProps> = ({ onBack, projectId = null,
         };
 
         fetchData();
-    }, [projectId]);
+    }, [projectId, groupColors]);
 
     const handleSensorUpdate = (id: string, updates: any) => {
         if (projectId && updateDB) {

@@ -39,7 +39,7 @@ const ManageView: React.FC<ManageViewProps> = ({ onClose, onSelectItems, project
             initialExpandedState[floor] = index === 1;
         });
         setExpandedFloors(initialExpandedState);
-    }, []);
+    }, [currentView, onViewChange]);
 
     if (!projectData) {
         return <div className="h-screen flex items-center justify-center">Loading...</div>;

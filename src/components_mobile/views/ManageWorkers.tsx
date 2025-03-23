@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Search, List, ListTree, MoreVertical, Pencil, X } from 'lucide-react';
 import { getMockProjectData, updateItemInDatabase } from '@/utils/dataUtils';
 import { MultiSelect } from '@/components/ui/MultiSelect';
@@ -161,7 +161,7 @@ const MobileWorkersView: React.FC<WorkersViewProps> = ({ onBack, projectId = nul
     const [loading, setLoading] = useState(true);
 
     // Define group colors
-    const groupColors = {
+    const groupColors = useMemo(() => ({
         'Yellow': '#FFFF00',
         'Red': '#FF0000',
         'Blue': '#0000FF',
@@ -171,7 +171,7 @@ const MobileWorkersView: React.FC<WorkersViewProps> = ({ onBack, projectId = nul
         'Orange': '#FF9800',
         'Teal': '#009688',
         'Indigo': '#3F51B5'
-    };
+    }), []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -235,7 +235,7 @@ const MobileWorkersView: React.FC<WorkersViewProps> = ({ onBack, projectId = nul
         };
 
         fetchData();
-    }, [projectId]);
+    }, [projectId, groupColors]);
 
     const handleWorkerUpdate = (id: string, updates: any) => {
         if (projectId && updateDB) {

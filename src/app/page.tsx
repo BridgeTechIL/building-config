@@ -103,11 +103,32 @@ function HomeContent({ projectId }: { projectId: string | null }) {
   const [equipment, setEquipment] = useState<any[]>([]);
   const [sensors, setSensors] = useState<any[]>([]);
 
-  const formatWorkerDataForModal = (rawWorkers) => {
+  interface RawWorker {
+    tagId?: string;
+    id?: string;
+    name?: string;
+    display_name?: string;
+    position?: string;
+    role?: string;
+    floor_physical?: number;
+    apartment?: string;
+    location?: {
+      floor_physical?: number;
+      apartment?: string;
+    };
+    image?: string;
+    avatar?: string;
+    lastSeen?: string;
+    last_update?: string;
+    history?: any[];
+    visitHistory?: any[];
+  }
+
+  const formatWorkerDataForModal = (rawWorkers: RawWorker[]) => {
     return rawWorkers.map(worker => ({
       id: worker.tagId || worker.id || `worker-${Math.random().toString(36).substring(7)}`,
       name: worker.name || worker.display_name || 'Unnamed Worker',
-      type: 'worker',
+      type: 'worker' as const,
       position: worker.position || worker.role || 'Construction Worker',
       location: {
         floor: Number(worker.floor_physical || worker.location?.floor_physical || 0),
@@ -119,11 +140,25 @@ function HomeContent({ projectId }: { projectId: string | null }) {
     }));
   };
 
-  const formatEquipmentDataForModal = (rawEquipment) => {
+  interface RawEquipment {
+    tagId?: string;
+    id?: string;
+    name?: string;
+    display_name?: string;
+    type?: string;
+    floor_physical?: number;
+    location?: {
+      floor_physical?: number;
+    };
+    lastSeen?: string;
+    last_update?: string;
+  }
+
+  const formatEquipmentDataForModal = (rawEquipment: RawEquipment[]) => {
     return rawEquipment.map(item => ({
       id: item.tagId || item.id || `equip-${Math.random().toString(36).substring(7)}`,
       name: item.name || item.display_name || 'Unnamed Equipment',
-      type: 'equipment',
+      type: 'equipment' as const,
       position: item.type || 'Construction Equipment',
       location: {
         floor: Number(item.floor_physical || item.location?.floor_physical || 0)
@@ -132,11 +167,25 @@ function HomeContent({ projectId }: { projectId: string | null }) {
     }));
   };
 
-  const formatSensorDataForModal = (rawSensors) => {
+  interface RawSensor {
+    tagId?: string;
+    id?: string;
+    name?: string;
+    display_name?: string;
+    sensor_type?: string;
+    floor_physical?: number;
+    location?: {
+      floor_physical?: number;
+    };
+    lastSeen?: string;
+    last_update?: string;
+  }
+
+  const formatSensorDataForModal = (rawSensors: RawSensor[]) => {
     return rawSensors.map(sensor => ({
       id: sensor.tagId || sensor.id || `sensor-${Math.random().toString(36).substring(7)}`,
       name: sensor.name || sensor.display_name || 'Unnamed Sensor',
-      type: 'sensor',
+      type: 'sensor' as const,
       position: sensor.sensor_type || 'Environmental Sensor',
       location: {
         floor: Number(sensor.floor_physical || sensor.location?.floor_physical || 0)
