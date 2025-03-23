@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --only=production
 
 # Copy the rest of the application code to the working directory
 COPY . .
@@ -16,12 +16,12 @@ COPY . .
 # Build the React application
 RUN npm run build
 
-# Use a lightweight web server to serve the built files
 # Install `serve` globally
 RUN npm install -g serve
 
-# Expose the port the app runs on
+# Expose the port using environment variable
+ENV PORT 8080
 EXPOSE 8080
 
-# Command to serve the app
-CMD ["serve", "-s", "build", "-l", "8080"]
+# Command to serve the app using the PORT environment variable
+CMD serve -s build -l ${PORT}
