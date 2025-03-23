@@ -15,7 +15,8 @@ import { useMobile } from '@/components_mobile/MobileProvider';
 import MobileBuilding from '@/components_mobile/views/BuildingView';
 import BottomMenuBar from '@/components_mobile/layout/Menu';
 import MobileFilter from '@/components_mobile/layout/Filter';
-
+import ManageView from '@/components_mobile/views/ManageView';
+import AlertsPage from '@/components_mobile/views/Alerts';
 
 
 type SearchParamsRenderProp = (params: { projectId: string | null }) => React.ReactElement
@@ -49,9 +50,10 @@ interface BuildingItems {
 }
 
 function HomeContent({ projectId }: { projectId: string | null }) {
+  const [manageView, setManageView] = useState<string>('overview');
   const [showFilters, setShowFilters] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isRealtimeMode, setIsRealtimeMode] = useState(false);
+  const [isRealtimeMode, setIsRealtimeMode] = useState(true);
   const [activeItems, setActiveItems] = useState<{ type: string; ids: string[] }>({ type: '', ids: [] });
   const [showAlerts, setShowAlerts] = useState(false);
 
@@ -572,126 +574,162 @@ function HomeContent({ projectId }: { projectId: string | null }) {
       <div className="h-screen flex flex-col">
         {/* Main content area - takes all available space except bottom menu */}
         <div className="flex-1 relative overflow-hidden">
-          <MobileBuilding
-            floorCount={10}
-            activeFloor={activeFloor}
-            setActiveFloor={setActiveFloor}
-            floorData={{
-              ...Object.fromEntries(
-                Array.from({ length: floorCount + 1 }, (_, i) => {
-                  const floor = floors.find(f => Number(f.level) === i) || { zones: [] };
-                  return [
-                    i,
-                    {
-                      hasCameras: floor.zones && floor.zones.some ? floor.zones.some(zone => !zone.isWifi) : false,
-                      hasAlerts: floor.zones && floor.zones.some ? floor.zones.some(zone => zone.isDanger) : false,
-                      zonesCount: floor.zones ? floor.zones.length : 0,
-                      workerCount: floorWorkerCounts[i] || 0,
-                      equipmentCount: floorEquipmentCounts[i] || 0,
-                      sensorCount: floorSensorCounts[i] || 0
-                    }
+          {isRealtimeMode ? (
+            <>
+              <MobileBuilding
+                floorCount={10}
+                activeFloor={activeFloor}
+                setActiveFloor={setActiveFloor}
+                floorData={{
+                  ...Object.fromEntries(
+                    Array.from({ length: floorCount + 1 }, (_, i) => {
+                      const floor = floors.find(f => Number(f.level) === i) || { zones: [] };
+                      return [
+                        i,
+                        {
+                          hasCameras: floor.zones && floor.zones.some ? floor.zones.some(zone => !zone.isWifi) : false,
+                          hasAlerts: floor.zones && floor.zones.some ? floor.zones.some(zone => zone.isDanger) : false,
+                          zonesCount: floor.zones ? floor.zones.length : 0,
+                          workerCount: floorWorkerCounts[i] || 0,
+                          equipmentCount: floorEquipmentCounts[i] || 0,
+                          sensorCount: floorSensorCounts[i] || 0
+                        }
+                      ];
+                    })
+                  )
+                }}
+                workersData={activeWorkersData}
+                equipmentData={activeEquipmentData}
+                sensorsData={activeSensorsData}
+              />
+
+              {/* Filter button */}
+              <button
+                className="absolute right-6 bottom-20 z-40"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="28" cy="28" r="27.25" fill="#41A3EA" stroke="url(#paint0_linear_37_12426)" strokeWidth="1.5" />
+                  <path d="M30.7061 38.1803C30.7061 38.9734 30.186 40.0135 29.523 40.4166L27.6898 41.5997C25.9866 42.6528 23.6204 41.4697 23.6204 39.3635V32.4077C23.6204 31.4846 23.1003 30.3015 22.5673 29.6514L17.5747 24.3989C16.9116 23.7358 16.3916 22.5657 16.3916 21.7726V18.7563C16.3916 17.1831 17.5748 16 19.0179 16H36.3617C37.8048 16 38.988 17.1831 38.988 18.6263V21.5126C38.988 22.5657 38.3249 23.8788 37.6748 24.5289" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M32.9817 34.8655C35.2795 34.8655 37.1422 33.0029 37.1422 30.7051C37.1422 28.4074 35.2795 26.5447 32.9817 26.5447C30.684 26.5447 28.8213 28.4074 28.8213 30.7051C28.8213 33.0029 30.684 34.8655 32.9817 34.8655Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M37.9217 35.6455L36.6216 34.3453" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <defs>
+                    <linearGradient id="paint0_linear_37_12426" x1="269.5" y1="-94.5" x2="6.49999" y2="51" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#05061A" stopOpacity="0.5" />
+                      <stop offset="1" stopColor="#05061A" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </button>
+
+              <MobileFilter
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                updateDB={updateDB}
+                floorNames={floorNames}
+                onSelectItems={(selections) => {
+                  // Log the selections correctly
+                  console.log(`Received ${selections.workers.length} workers, ${selections.equipment.length} equipment, ${selections.sensors.length} sensors`);
+
+                  // Store all selected items in their respective state variables
+                  setWorkers(selections.workers);
+                  setEquipment(selections.equipment);
+                  setSensors(selections.sensors);
+
+                  // Determine which type to use as "primary" for display purposes
+                  // Let's choose the one with the most selected items or just use a default
+                  let primaryType = 'workers';
+                  if (selections.equipment.length > selections.workers.length &&
+                    selections.equipment.length > selections.sensors.length) {
+                    primaryType = 'equipment';
+                  } else if (selections.sensors.length > selections.workers.length &&
+                    selections.sensors.length > selections.equipment.length) {
+                    primaryType = 'sensors';
+                  }
+
+                  // Collect all IDs from all selected items
+                  const allItemIds = [
+                    ...selections.workers.map(item => item.tagId),
+                    ...selections.equipment.map(item => item.tagId),
+                    ...selections.sensors.map(item => item.tagId)
                   ];
-                })
-              )
-            }}
-            workersData={activeWorkersData}
-            equipmentData={activeEquipmentData}
-            sensorsData={activeSensorsData}
-          />
-          
 
-          {/* Filter button */}
-          <button
-            className="absolute right-6 bottom-20 z-40"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="28" cy="28" r="27.25" fill="#41A3EA" stroke="url(#paint0_linear_37_12426)" strokeWidth="1.5" />
-              <path d="M30.7061 38.1803C30.7061 38.9734 30.186 40.0135 29.523 40.4166L27.6898 41.5997C25.9866 42.6528 23.6204 41.4697 23.6204 39.3635V32.4077C23.6204 31.4846 23.1003 30.3015 22.5673 29.6514L17.5747 24.3989C16.9116 23.7358 16.3916 22.5657 16.3916 21.7726V18.7563C16.3916 17.1831 17.5748 16 19.0179 16H36.3617C37.8048 16 38.988 17.1831 38.988 18.6263V21.5126C38.988 22.5657 38.3249 23.8788 37.6748 24.5289" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M32.9817 34.8655C35.2795 34.8655 37.1422 33.0029 37.1422 30.7051C37.1422 28.4074 35.2795 26.5447 32.9817 26.5447C30.684 26.5447 28.8213 28.4074 28.8213 30.7051C28.8213 33.0029 30.684 34.8655 32.9817 34.8655Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M37.9217 35.6455L36.6216 34.3453" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <defs>
-                <linearGradient id="paint0_linear_37_12426" x1="269.5" y1="-94.5" x2="6.49999" y2="51" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#05061A" stopOpacity="0.5" />
-                  <stop offset="1" stopColor="#05061A" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </button>
+                  // Set active items with all IDs
+                  setActiveItems({
+                    type: primaryType,
+                    ids: allItemIds
+                  });
+                }}
+              />
 
-          <MobileFilter
-            isOpen={showFilters}
-            onClose={() => setShowFilters(false)}
-            updateDB={updateDB}
-            floorNames={floorNames}
-            onSelectItems={(selections) => {
-              // Log the selections correctly
-              console.log(`Received ${selections.workers.length} workers, ${selections.equipment.length} equipment, ${selections.sensors.length} sensors`);
+              {/* Show alerts overlay when alerts button is clicked */}
+              {showAlerts && (
+                <div className="absolute inset-0 bg-gray-900/80 z-40 p-4">
+                  {/* Your existing alerts content */}
+                </div>
+              )}
+            </>
+          ) : (
+            // This is the "else" block for when NOT in realtime mode
+            isEditMode ? (
+              // Render ManageView when in edit mode
+              <ManageView
+                onClose={() => setIsEditMode(false)}
+                onViewChange={setManageView}
+                onSelectItems={(selections) => {
+                  // Handle selections
+                  setWorkers(selections.workers);
+                  setEquipment(selections.equipment);
+                  setSensors(selections.sensors);
 
-              // Store all selected items in their respective state variables
-              setWorkers(selections.workers);
-              setEquipment(selections.equipment);
-              setSensors(selections.sensors);
+                  // Set active items
+                  const allItemIds = [
+                    ...selections.workers.map(item => item.tagId),
+                    ...selections.equipment.map(item => item.tagId),
+                    ...selections.sensors.map(item => item.tagId)
+                  ];
 
-              // Determine which type to use as "primary" for display purposes
-              // Let's choose the one with the most selected items or just use a default
-              let primaryType = 'workers';
-              if (selections.equipment.length > selections.workers.length &&
-                selections.equipment.length > selections.sensors.length) {
-                primaryType = 'equipment';
-              } else if (selections.sensors.length > selections.workers.length &&
-                selections.sensors.length > selections.equipment.length) {
-                primaryType = 'sensors';
-              }
-
-              // Collect all IDs from all selected items
-              const allItemIds = [
-                ...selections.workers.map(item => item.tagId),
-                ...selections.equipment.map(item => item.tagId),
-                ...selections.sensors.map(item => item.tagId)
-              ];
-
-              // Set active items with all IDs
-              setActiveItems({
-                type: primaryType,
-                ids: allItemIds
-              });
-            }}
-          />
-
-
-          {/* Show alerts overlay when alerts button is clicked */}
-          {showAlerts && (
-            <div className="absolute inset-0 bg-gray-900/80 z-40 p-4">
-              {/* Your existing alerts content */}
-            </div>
+                  setActiveItems({
+                    type: 'workers',
+                    ids: allItemIds
+                  });
+                }}
+              />
+            ) : (
+              // Render AlertsPage when not in edit mode and not in realtime mode
+              <AlertsPage />
+            )
           )}
+          
         </div>
 
         {/* Bottom menu - fixed at bottom */}
-        <BottomMenuBar
-          activePage={isEditMode ? "modify" : isRealtimeMode ? "realtime" : showAlerts ? "alerts" : "realtime"}
-          onEditClick={() => {
-            setIsEditMode(true);
-            setIsRealtimeMode(false);
-            setShowAlerts(false);
-            setShowFilters(false);
-          }}
-          onTargetClick={() => {
-            setIsEditMode(false);
-            setIsRealtimeMode(true);
-            setShowAlerts(false);
-            setShowFilters(false);
-          }}
-          onAlertsClick={() => {
-            setIsEditMode(false);
-            setIsRealtimeMode(false);
-            setShowAlerts(true);
-            setShowFilters(false);
-          }}
-          hasNotifications={false}
-          isHidden={showFilters}
-        />
+        {!['workers', 'equipment', 'sensors', 'zones'].includes(manageView) && !showFilters && (
+
+          <BottomMenuBar
+            activePage={isEditMode ? "modify" : isRealtimeMode ? "realtime" : showAlerts ? "alerts" : "realtime"}
+            onEditClick={() => {
+              setIsEditMode(true);
+              setIsRealtimeMode(false);
+              setShowAlerts(false);
+              setShowFilters(false);
+            }}
+            onTargetClick={() => {
+              setIsEditMode(false);
+              setIsRealtimeMode(true);
+              setShowAlerts(false);
+              setShowFilters(false);
+            }}
+            onAlertsClick={() => {
+              setIsEditMode(false);
+              setIsRealtimeMode(false);
+              setShowAlerts(true);
+              setShowFilters(false);
+            }}
+            hasNotifications={false}
+            isHidden={showFilters}
+          />
+        )}
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { Worker, WorkerGroup } from '@/config/workers';
 import { Equipment, EquipmentGroup } from '@/config/equipment';
 import { Sensor, SensorType } from '@/config/sensors';
 import { useSearchParams } from 'next/navigation';
+import { fetchProjectData, getMockProjectData, updateItemInDatabase } from '@/utils/dataUtils';
 
 type FilterMode = 'workers' | 'equipment' | 'sensors';
 
@@ -76,166 +77,97 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
     useEffect(() => {
         if (!isOpen) return;
 
-        // Hardcoded data from provided JSON
+        const loadData = async () => {
+            // Use the project ID if available, otherwise use mock data
+            const projectData = projectId
+                ? await fetchProjectData(projectId)
+                : getMockProjectData();
 
-        const hardcodedData = {
-            "access_points": [],
-            "cameras": [],
-            "devices_cameras": {
-                "Left Hoist": "https://player.castr.com/live_8afde1b0f70711ee871d23aae5d7c6ee",
-                "Right Hoist": "https://player.castr.com/live_bf5d7970f70711ee948a45f2b72e18f4"
-            },
-            "floor_names": {
-                "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7",
-                "8": "8", "9": "9", "10": "10", "11": "11", "12": "12", "13": "13", "14": "14", "15": "15"
-            },
-            "peeps": [
-                { "company": "KWB", "floor": 4, "floor_name": "4", "groups": [39, 34], "id": 7, "name": "Alexandru Ghirda", "tag_id": 7, "trade": "Kitchen Fitter", "type": 1, "zone": [42, 67] },
-                { "company": "Atlantic", "floor": 7, "floor_name": "7", "groups": [32, 40], "id": 25, "name": "Arone  Kismae Menyha", "tag_id": 25, "trade": "Labourer", "type": 1, "zone": [28, 53] },
-                { "company": "AC Beck", "floor": 1, "floor_name": "1", "groups": [31, 42], "id": 2, "name": "Augustus  Brown", "tag_id": 2, "trade": "Painter", "type": 1, "zone": [74, 38] },
-                { "company": "AC Beck", "floor": 6, "floor_name": "6", "groups": [31, 42], "id": 3, "name": "Catalin  Balu", "tag_id": 3, "trade": "Painter", "type": 1, "zone": [63, 41] },
-                { "company": "Atlantic", "floor": 8, "floor_name": "8", "groups": [32, 40], "id": 23, "name": "Charlie Willmott", "tag_id": 23, "trade": "Labourer", "type": 1, "zone": [56, 82] },
-                { "company": "Atlantic", "floor": 3, "floor_name": "3", "groups": [32, 36], "id": 17, "name": "Constantin Betivu", "tag_id": 17, "trade": "Carpenter", "type": 1, "zone": [31, 44] },
-                { "company": "KWB", "floor": 3, "floor_name": "3", "groups": [34, 40], "id": 8, "name": "Costea  Ilie", "tag_id": 8, "trade": "Labourer", "type": 1, "zone": [47, 65] },
-                { "company": "Atlantic", "floor": 3, "floor_name": "3", "groups": [32, 40], "id": 20, "name": "Dan Smochina", "tag_id": 20, "trade": "Labourer", "type": 1, "zone": [53, 29] },
-                { "company": "Precision Sealants", "floor": 11, "floor_name": "11", "groups": [41, 35], "id": 31, "name": "Dave  Rushman", "tag_id": 31, "trade": "Mastic Man", "type": 1, "zone": [71, 58] },
-                { "company": "Atlantic", "floor": 0, "floor_name": "0", "groups": [32, 36], "id": 13, "name": "Dmitrij Saveljev", "tag_id": 13, "trade": "Carpenter", "type": 1, "zone": [39, 71] },
-                // These already had floor locations in the original data
-                { "company": "KWB", "floor": 5, "floor_name": "5", "groups": [34, 40], "id": 10, "name": "George Coroama", "tag_id": 10, "trade": "Labourer", "type": 1, "zone": [30, 40] },
-                { "company": "Atlantic", "floor": 3, "floor_name": "3", "groups": [32, 36], "id": 16, "name": "Ilia Goriuc", "tag_id": 16, "trade": "Carpenter", "type": 1, "zone": [50, 60] },
-                { "company": "KWB", "floor": 2, "floor_name": "2", "groups": [39, 34], "id": 12, "name": "Ioan Adrian Botezat", "tag_id": 12, "trade": "Kitchen Fitter", "type": 1, "zone": [45, 55] },
-                { "company": "Atlantic", "floor": 2, "floor_name": "2", "groups": [32, 40], "id": 22, "name": "John Young ", "tag_id": 22, "trade": "Labourer", "type": 1, "zone": [48, 62] },
-                { "company": "KWB", "floor": 3, "floor_name": "3", "groups": [39, 34], "id": 4, "name": "Klaidas Juervicius", "tag_id": 4, "trade": "Kitchen Fitter", "type": 1, "zone": [57, 43] },
-                { "company": "Atlantic", "floor": 10, "floor_name": "10", "groups": [32, 40], "id": 24, "name": "Kyle  Mcauliffe", "tag_id": 24, "trade": "Labourer", "type": 1, "zone": [62, 77] }
-            ],
-            "project_name": "GallifordTry - Brent Cross",
-            "sensors": [
-                // These already had floor locations in the original data
-                { "id": "101", "display_name": "Temperature Sensor 1", "type": "Temperature", "floor_physical": 5, "floor_name": "5", "location_x": 30, "location_y": 40 },
-                { "id": "102", "display_name": "Humidity Sensor 1", "type": "Humidity", "floor_physical": 3, "floor_name": "3", "location_x": 50, "location_y": 60 },
-                { "id": "103", "display_name": "Motion Sensor 1", "type": "Motion", "floor_physical": 3, "floor_name": "3", "location_x": 45, "location_y": 55 },
-                // Assigning floors to previously null items
-                { "id": "104", "display_name": "Temperature Sensor 2", "type": "Temperature", "floor_physical": 6, "floor_name": "6", "location_x": 72, "location_y": 54 },
-                { "id": "105", "display_name": "Smoke Sensor 1", "type": "Smoke", "floor_physical": 8, "floor_name": "8", "location_x": 45, "location_y": 63 },
-                { "id": "106", "display_name": "Smoke Sensor 3", "type": "Smoke", "floor_physical": 8, "floor_name": "8", "location_x": 45, "location_y": 63 }
+            // Load all data types when filter opens
+            if (workers.length === 0) {
+                // Load workers and groups
+                const parsedGroups = projectData.worker_groups.map((group, index) => ({
+                    id: group.id.toString(),
+                    name: group.name,
+                    description: group.description || '',
+                    isActive: false,
+                    color: getRandomColor(index),
+                }));
+                setWorkerGroups(parsedGroups);
 
-            ],
-            "stuff": [
-                // These already had floor locations in the original data
-                { "id": "201", "tag_id": "201", "name": "Drill", "floor": 5, "floor_name": "5", "zone": [30, 40], "groups": [43] },
-                { "id": "202", "tag_id": "202", "name": "Ladder", "floor": 3, "floor_name": "3", "zone": [50, 60], "groups": [44] },
-                { "id": "203", "tag_id": "203", "name": "Generator", "floor": 3, "floor_name": "3", "zone": [45, 55], "groups": [43] },
-                // Assigning floors to previously null items
-                { "id": "204", "tag_id": "204", "name": "Saw", "floor": 6, "floor_name": "6", "zone": [58, 39], "groups": [43] },
-                { "id": "205", "tag_id": "205", "name": "Compressor", "floor": 4, "floor_name": "4", "zone": [41, 68], "groups": [44] },
-                { "id": "206", "tag_id": "206", "name": "Compressor", "floor": 4, "floor_name": "4", "zone": [41, 68], "groups": [44] }
+                const parsedWorkers = projectData.peeps.map(person => ({
+                    id: person.id.toString(),
+                    tagId: person.tag_id.toString(),
+                    floor_name: person.floor_name || (person.floor !== null ? floorNames[person.floor] || '-' : '-'),
+                    floor_physical: person.floor,
+                    xy: person.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
+                    name: person.name ? person.name : 'Unnamed Worker',
+                    role: person.trade ? person.trade : 'Unknown',
+                    groups: person.groups ? person.groups.map(g => g.toString()) : [],
+                }));
+                setWorkers(parsedWorkers);
 
-            ],
-            "worker_groups": [
-                { "description": "", "id": 31, "name": "AC Beck", "project_id": 183, "type": 1 },
-                { "description": "", "id": 32, "name": "Atlantic", "project_id": 183, "type": 1 },
-                { "description": "", "id": 33, "name": "B&F", "project_id": 183, "type": 1 },
-                { "description": "", "id": 36, "name": "Carpenter", "project_id": 183, "type": 1 },
-                { "description": "", "id": 37, "name": "Elec Tester", "project_id": 183, "type": 1 },
-                { "description": "", "id": 38, "name": "Electrician", "project_id": 183, "type": 1 },
-                { "description": "", "id": 39, "name": "Kitchen Fitter", "project_id": 183, "type": 1 },
-                { "description": "", "id": 34, "name": "KWB", "project_id": 183, "type": 1 },
-                { "description": "", "id": 40, "name": "Labourer", "project_id": 183, "type": 1 },
-                { "description": "", "id": 41, "name": "Mastic Man", "project_id": 183, "type": 1 },
-                { "description": "", "id": 42, "name": "Painter", "project_id": 183, "type": 1 },
-                { "description": "", "id": 35, "name": "Precision Sealants", "project_id": 183, "type": 1 }
-            ],
-            "equipment_groups": [
-                { "id": 43, "name": "Tools", "description": "Power and hand tools", "project_id": 183, "type": 2 },
-                { "id": 44, "name": "Heavy Equipment", "description": "Large machinery", "project_id": 183, "type": 2 }
-            ],
-            "zones": []
+                // Initialize expanded state for worker groups
+                const initialExpandedGroups: Record<string, boolean> = {};
+                parsedGroups.forEach(group => {
+                    initialExpandedGroups[group.id] = false;
+                });
+                setExpandedGroups(initialExpandedGroups);
+            }
+
+            if (equipment.length === 0) {
+                // Load equipment and groups
+                const parsedGroups = projectData.equipment_groups.map(group => ({
+                    id: group.id.toString(),
+                    name: group.name,
+                    description: group.description || '',
+                    isActive: false
+                }));
+                setEquipmentGroups(parsedGroups);
+
+                const parsedEquipment = projectData.stuff.map(item => ({
+                    id: item.id.toString(),
+                    tagId: item.tag_id.toString(),
+                    floor_physical: item.floor,
+                    floor_name: item.floor_name || (item.floor !== null ? floorNames[item.floor] || '-' : '-'),
+                    name: item.name ? item.name : 'Unnamed Equipment',
+                    type: item.name ? item.name : 'Unnamed Equipment',
+                    xy: item.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
+                    groups: item.groups ? item.groups.map(group => group.toString()) : []
+                }));
+                setEquipment(parsedEquipment);
+            }
+
+            if (sensors.length === 0) {
+                // Load sensors and types
+                const fetchedSensors = projectData.sensors.map(sensor => ({
+                    tagId: sensor.id.toString(),
+                    name: sensor.display_name,
+                    floor_name: sensor.floor_name || (sensor.floor_physical ? floorNames[sensor.floor_physical] : '-'),
+                    type: sensor.type,
+                    location: {
+                        floor_physical: sensor.floor_physical,
+                        xy: [
+                            sensor.location_x ?? Math.floor(Math.random() * 66) + 10,
+                            sensor.location_y ?? Math.floor(Math.random() * 66) + 10
+                        ] as [number, number],
+                        is_exact: true
+                    }
+                }));
+                setSensors(fetchedSensors);
+
+                const fetchedTypes = Array.from(
+                    new Set(fetchedSensors.map(sensor => sensor.type as string)) as Set<string>
+                ).map(type => ({
+                    id: type,
+                    name: type,
+                }));
+                setSensorTypes(fetchedTypes);
+            }
         };
 
-
-        // Load all data types when filter opens
-        if (workers.length === 0) {
-            // Load workers and groups
-            const parsedGroups = hardcodedData.worker_groups.map((group: any, index: number) => ({
-                id: group.id.toString(),
-                name: group.name,
-                description: group.description || '',
-                isActive: false,
-                color: getRandomColor(index),
-            }));
-            setWorkerGroups(parsedGroups);
-
-            const parsedWorkers = hardcodedData.peeps.map((person: any) => ({
-                id: person.id.toString(),
-                tagId: person.tag_id.toString(),
-                floor_name: person.floor_name || floorNames[person.floor] || '-',
-                floor_physical: person.floor,
-                xy: person.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
-                name: person.name ? person.name : 'Unnamed Worker',
-                role: person.trade ? person.trade : 'Unknown',
-                groups: person.groups.map((g: any) => g.toString()),
-            }));
-            setWorkers(parsedWorkers);
-
-            // Initialize expanded state for worker groups
-            const initialExpandedGroups: Record<string, boolean> = {};
-            parsedGroups.forEach(group => {
-                initialExpandedGroups[group.id] = false;
-            });
-            setExpandedGroups(initialExpandedGroups);
-        }
-
-        if (equipment.length === 0) {
-            // Load equipment and groups
-            const parsedGroups = hardcodedData.equipment_groups.map((group: any) => ({
-                id: group.id.toString(),
-                name: group.name,
-                description: group.description || '',
-                isActive: false
-            }));
-            setEquipmentGroups(parsedGroups);
-
-            const parsedEquipment = hardcodedData.stuff.map((item: any) => ({
-                id: item.id.toString(),
-                tagId: item.tag_id.toString(),
-                floor_physical: item.floor,
-                floor_name: item.floor_name || floorNames[item.floor] || '-',
-                name: item.name ? item.name : 'Unnamed Equipment',
-                type: item.name ? item.name : 'Unnamed Equipment',
-                xy: item.zone || [Math.floor(Math.random() * 66) + 10, Math.floor(Math.random() * 66) + 10],
-                groups: item.groups.map((group: any) => group.toString())
-            }));
-            setEquipment(parsedEquipment);
-        }
-
-        if (sensors.length === 0) {
-            // Load sensors and types
-            const fetchedSensors = hardcodedData.sensors.map((sensor: any) => ({
-                tagId: sensor.id.toString(),
-                name: sensor.display_name,
-                floor_name: sensor.floor_name || (sensor.floor_physical ? floorNames[sensor.floor_physical] : '-'),
-                type: sensor.type,
-                location: {
-                    floor_physical: sensor.floor_physical,
-                    xy: [
-                        sensor.location_x ?? Math.floor(Math.random() * 66) + 10,
-                        sensor.location_y ?? Math.floor(Math.random() * 66) + 10
-                    ] as [number, number],
-                    is_exact: true
-                }
-            }));
-            setSensors(fetchedSensors);
-
-            const fetchedTypes = Array.from(
-                new Set(fetchedSensors.map((sensor: any) => sensor.type as string)) as Set<string>
-            ).map(type => ({
-                id: type,
-                name: type,
-            }));
-            setSensorTypes(fetchedTypes);
-        }
-
-    }, [isOpen]);
+        loadData();
+    }, [isOpen, projectId, floorNames]);
 
     const getRandomColor = (index: number) => {
         const colors = [
@@ -364,10 +296,12 @@ const MobileFilter: React.FC<MobileFilterProps> = ({
     };
 
     const toggleItemSelection = (id: string) => {
-        setCurrentSelection(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
+        const currentSelection = getCurrentSelection();
+        const newSelection = {
+            ...currentSelection,
+            [id]: !currentSelection[id]
+        };
+        setCurrentSelection(newSelection);
     };
 
     const toggleGroupExpanded = (groupId: string) => {
