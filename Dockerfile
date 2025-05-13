@@ -4,24 +4,21 @@ FROM node:18-alpine
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json (or yarn.lock) to the working directory
+# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including dev dependencies needed for build)
+RUN npm ci
 
 # Copy the rest of the application code to the working directory
 COPY . .
 
-# Build the React application
+# Build the Next.js application
 RUN npm run build
 
-# Install `serve` globally
-RUN npm install -g serve
-
-# Expose the port using environment variable
+# Expose the port
 ENV PORT 8080
 EXPOSE 8080
 
-# Command to serve the app using the PORT environment variable
-CMD serve -s build -l ${PORT}
+# Command to start the Next.js server
+CMD ["npm", "start"]
