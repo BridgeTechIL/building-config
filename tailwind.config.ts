@@ -6,6 +6,11 @@ export default {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    {
+      pattern: /./, // This matches all classes
+    },
+  ],
   theme: {
     extend: {
       colors: {

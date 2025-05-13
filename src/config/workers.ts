@@ -3,6 +3,7 @@ export interface Worker {
   id: string;
   tagId: string;
   name: string;
+  floor_name: string;
   role: string;
   phone?: string;
   floor_physical?: number;
@@ -17,3 +18,5 @@ export interface WorkerGroup {
   isActive: boolean;
   color: string;
 }
+
+

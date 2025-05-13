@@ -1,6 +1,6 @@
 /** @type {import('next').Config} */
 const config = {
-  // your config here
+  devIndicators: false
 }
 
 module.exports = config

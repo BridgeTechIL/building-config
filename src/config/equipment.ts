@@ -3,6 +3,7 @@ export interface Equipment {
   id: string;
   tagId: string;
   name: string;
+  floor_name: string;
   type: string;
   floor_physical?: number;
   xy?: [number, number];
